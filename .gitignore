@@ -1,0 +1,7 @@
+*.o
+*.d
+*.elf
+*.map
+.config
+.depends
+defconfig
