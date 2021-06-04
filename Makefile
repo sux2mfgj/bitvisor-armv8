@@ -1,5 +1,6 @@
 DIR ?= .
 V ?= 0
+CROSS_COMPILE :=
 include Makefile.common
 
 .PHONY : all
@@ -15,15 +16,15 @@ map    = $(NAME).map
 lds    = $(NAME).lds
 target = $(elf)
 
-subdirs-1 += core drivers
+subdirs-1 += arch core #drivers
 subdirs-$(CONFIG_STORAGE) += storage
 subdirs-$(CONFIG_STORAGE_IO) += storage_io
 subdirs-$(CONFIG_VPN) += vpn
 subdirs-$(CONFIG_IDMAN) += idman
-subdirs-1 += net
+#subdirs-1 += net
 subdirs-$(CONFIG_IP) += ip
 asubdirs-$(CONFIG_CRYPTO) += crypto
-psubdirs-1 += process
+#psubdirs-1 += process
 
 process-depends-$(CONFIG_CRYPTO) += $(dir)crypto/$(outa_p)
 process-depends-$(CONFIG_IDMAN) += $(dir)idman/$(outo_p)
@@ -35,7 +36,7 @@ $(dir)$(elf) : $(defouto) $(dir)$(lds)
 	$(V-info) LD $(dir)$(elf)
 	$(CC) $(LDFLAGS) -Wl,-T,$(dir)$(lds) -Wl,--cref \
 		-Wl,-Map,$(dir)$(map) -o $(dir)$(elf) $(defouto)
-	$(OBJCOPY) --output-format $(FORMAT) $(dir)$(elf)
+	#@$(OBJCOPY) --output-format $(FORMAT) $(dir)$(elf)
 
 .PHONY : build-all
 build-all : $(CONFIG) defconfig

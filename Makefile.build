@@ -7,15 +7,27 @@ include $(CONFIG)
 backtrace-0 = -fomit-frame-pointer
 backtrace-1 = -fno-omit-frame-pointer
 backtrace = $(backtrace-$(CONFIG_BACKTRACE))
+x64-m-0=
+x64-m-1=-m64
+x86-m-0=
+x86-m-1=-m32
 x64-0=
-x64-1=-m64
+x64-1=-mno-sse -mno-red-zone
 x86-0=
-x86-1=-m32
-CFLAGS = $(x64-$(CONFIG_X64)) $(x86-$(CONFIG_X86)) -mno-red-zone -mno-sse -nostdinc -g -O \
+x86-1=-mno-sse -mno-red-zone
+CFLAGS = $(x64-m-$(CONFIG_X64)) $(x86-m-$(CONFIG_X86)) \
+		$(x64-$(CONFIG_X64)) $(x86-$(CONFIG_X86)) -nostdinc -g -O \
 -ffreestanding -fno-builtin -fno-stack-protector $(backtrace) -fno-PIE \
 -fno-strict-aliasing -Wall -Wno-address-of-packed-member $(CONSTANTS-1) \
 -I$(DIR) -Iinclude
-ASFLAGS = $(x64-$(CONFIG_X64)) $(x86-$(CONFIG_X86)) -g -Wa,-I,$(DIR) -Wa,--divide
+x86-div-0=
+x86-div-1=-Wa,--divide
+x64-div-0=
+x64-div-1=-Wa,--divide
+aarch64-div-0=-Wa,--divide
+aarch64-div-1=
+ASFLAGS = $(x64-m-$(CONFIG_X64)) $(x86-m-$(CONFIG_X86)) -g -Wa,-I,$(DIR) \
+		  $(x86-div-$(CONFIG_X86)) $(x64-div-$(CONFIG_X64)) $(aarch64-div-$(CONFIG_AARCH64))
 LDFLAGS = $(x64-$(CONFIG_X64)) $(x86-$(CONFIG_X86)) -g -nostdlib -Wl,--build-id=none -static
 outo_p = $(outo)_p
 outa_p = $(outa)_p
