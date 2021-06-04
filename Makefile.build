@@ -7,14 +7,16 @@ include $(CONFIG)
 backtrace-0 = -fomit-frame-pointer
 backtrace-1 = -fno-omit-frame-pointer
 backtrace = $(backtrace-$(CONFIG_BACKTRACE))
-bits-0 = 32
-bits-1 = 64
-CFLAGS = -m$(bits-$(CONFIG_64)) -mno-red-zone -mno-sse -nostdinc -g -O \
+x64-0=
+x64-1=-m64
+x86-0=
+x86-1=-m32
+CFLAGS = $(x64-$(CONFIG_X64)) $(x86-$(CONFIG_X86)) -mno-red-zone -mno-sse -nostdinc -g -O \
 -ffreestanding -fno-builtin -fno-stack-protector $(backtrace) -fno-PIE \
 -fno-strict-aliasing -Wall -Wno-address-of-packed-member $(CONSTANTS-1) \
 -I$(DIR) -Iinclude
-ASFLAGS = -m$(bits-$(CONFIG_64)) -g -Wa,-I,$(DIR) -Wa,--divide
-LDFLAGS = -m$(bits-$(CONFIG_64)) -g -nostdlib -Wl,--build-id=none -static
+ASFLAGS = $(x64-$(CONFIG_X64)) $(x86-$(CONFIG_X86)) -g -Wa,-I,$(DIR) -Wa,--divide
+LDFLAGS = $(x64-$(CONFIG_X64)) $(x86-$(CONFIG_X86)) -g -nostdlib -Wl,--build-id=none -static
 outo_p = $(outo)_p
 outa_p = $(outa)_p
 outp_p = $(outp)_p
