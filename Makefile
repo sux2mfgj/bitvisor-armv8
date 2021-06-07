@@ -2,6 +2,7 @@ DIR ?= .
 V ?= 0
 CROSS_COMPILE :=
 include Makefile.common
+include $(CONFIG)
 
 .PHONY : all
 all : build-all
@@ -13,7 +14,11 @@ NAME   = bitvisor
 FORMAT = elf32-i386
 elf    = $(NAME).elf
 map    = $(NAME).map
+ifeq ($(CONFIG_AARCH64_VIRT),1)
+lds    = arch/aarch64/board/virt/$(NAME).lds
+else
 lds    = $(NAME).lds
+endif
 target = $(elf)
 
 subdirs-1 += arch core #drivers
@@ -34,6 +39,7 @@ process-depends-$(CONFIG_VPN) += $(dir)vpn/$(outo_p)
 
 $(dir)$(elf) : $(defouto) $(dir)$(lds)
 	$(V-info) LD $(dir)$(elf)
+	$(warning $(CC) $(LDFLAGS) -Wl,-T,$(dir)$(lds) -Wl,--cref -Wl,-Map,$(dir)$(map) -o $(dir)$(elf) $(defouto))
 	$(CC) $(LDFLAGS) -Wl,-T,$(dir)$(lds) -Wl,--cref \
 		-Wl,-Map,$(dir)$(map) -o $(dir)$(elf) $(defouto)
 	#@$(OBJCOPY) --output-format $(FORMAT) $(dir)$(elf)

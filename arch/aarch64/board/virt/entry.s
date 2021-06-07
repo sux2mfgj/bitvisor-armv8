@@ -1,6 +1,6 @@
 .section .entry
-.global entry
 
+.globl entry
 entry:
     // checking current exception level. it must be EL2.
     mrs x0, CurrentEL
