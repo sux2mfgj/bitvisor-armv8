@@ -20,6 +20,7 @@ else
 lds    = $(NAME).lds
 endif
 target = $(elf)
+image = $(NAME).image
 
 subdirs-1 += arch core #drivers
 subdirs-$(CONFIG_STORAGE) += storage
@@ -42,6 +43,12 @@ $(dir)$(elf) : $(defouto) $(dir)$(lds)
 	$(CC) $(LDFLAGS) -Wl,-T,$(dir)$(lds) -Wl,--cref \
 		-Wl,-Map,$(dir)$(map) -o $(dir)$(elf) $(defouto)
 	#@$(OBJCOPY) --output-format $(FORMAT) $(dir)$(elf)
+
+.PHONY : image
+image : $(dir)$(image)
+$(dir)$(image) : $(dir)$(elf)
+	@echo OBJCOPY $< $@
+	$(OBJCOPY) -O binary $< $@
 
 .PHONY : build-all
 build-all : $(CONFIG) defconfig
