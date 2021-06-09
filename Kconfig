@@ -1,0 +1,344 @@
+mainmenu  "BitVisor/ Configuration"
+
+config CONFIG_64
+    bool
+    default y
+    prompt "64bit VMM"
+
+config CONFIG_DEBUG_GDB
+    bool
+    default n
+    prompt "gdb remote debug support (32bit only)"
+
+config CONFIG_TTY_SERIAL
+    bool
+    default n
+    prompt "VMM uses a serial port (COM1) for output"
+
+config CONFIG_TTY_X540
+    bool
+    default y
+    prompt "VMM output to LAN"
+
+config CONFIG_CPU_MMU_SPT_1
+    bool
+    default n
+    prompt "Shadow type 1 (very slow and stable)"
+
+config CONFIG_CPU_MMU_SPT_2
+    bool
+    default n
+    prompt "Shadow type 2 (faster and unstable)"
+
+config CONFIG_CPU_MMU_SPT_3
+    bool
+    default y
+    prompt "Shadow type 3 (faster and unstable)"
+
+config CONFIG_CPU_MMU_SPT_DISABLE
+    bool
+    default n
+    prompt "Disable SPT (fast, insecure and no MMIO)"
+
+config CONFIG_CPU_MMU_SPT_USE_PAE
+    bool
+    default y
+    prompt "Shadow page table uses PAE"
+
+config CONFIG_PS2KBD_F11PANIC
+    bool
+    default n
+    prompt "Panic when F11 is pressed (PS/2 only)"
+
+config CONFIG_PS2KBD_F12MSG
+    bool
+    default y
+    prompt "Print when F12 is pressed (PS/2 only)"
+
+config CONFIG_DBGSH
+    bool
+    default y
+    prompt "Debug shell access from guest"
+
+config CONFIG_STATUS
+    bool
+    default n
+    prompt "Provide VMM status for guest"
+
+config CONFIG_LOG_TO_GUEST
+    bool
+    default n
+    prompt "Log to guest memory"
+
+config CONFIG_LOG_TO_IEEE1394
+    bool
+    default y
+    prompt "Log to IEEE 1394 host"
+
+config CONFIG_ATA_DRIVER
+    bool
+    default y
+    prompt "Enable ATA driver"
+
+config CONFIG_NVME_DRIVER
+    bool
+    default y
+    prompt "Enable NVMe driver"
+
+config CONFIG_STORAGE
+    bool
+    default y
+    prompt "Enable storage process/encryption"
+
+config CONFIG_STORAGE_IO
+    bool
+    default y
+    prompt "Enable storage IO interface"
+
+config CONFIG_CRYPTO
+    bool
+    default y
+    prompt "Crypto library"
+
+config CONFIG_VPN
+    bool
+    default y
+    prompt "Enable IPsec VPN Client"
+
+config CONFIG_USB_DRIVER
+    bool
+    default y
+    prompt "Enable USB driver"
+
+config CONFIG_SHADOW_UHCI
+    bool
+    default y
+    prompt "Shadow UHCI(USB1) transfers"
+
+config CONFIG_SHADOW_EHCI
+    bool
+    default y
+    prompt "Shadow EHCI(USB2) transfers"
+
+config CONFIG_SHADOW_XHCI
+    bool
+    default y
+    prompt "Shadow xHCI(USB3) transfers"
+
+config CONFIG_HANDLE_USBMSC
+    bool
+    default y
+    prompt "Handle USB mass storage class devices"
+
+config CONFIG_HANDLE_USBHUB
+    bool
+    default y
+    prompt "Handle USB hub class devices"
+
+config CONFIG_CONCEAL_USBCCID
+    bool
+    default y
+    prompt "Conceal USB ccid class device"
+
+config CONFIG_PS2KBD_F10USB
+    bool
+    default n
+    prompt "Run a test for USB ICCD when F10 pressed"
+
+config CONFIG_PS2KBD_F12USB
+    bool
+    default y
+    prompt "Dump EHCI async. list when F12 pressed"
+
+config CONFIG_IEEE1394_CONCEALER
+    bool
+    default y
+    prompt "Conceal OHCI IEEE 1394 host controllers"
+
+config CONFIG_ACPI_DSDT
+    bool
+    default y
+    prompt "Parse ACPI DSDT"
+
+config CONFIG_DISABLE_SLEEP
+    bool
+    default n
+    prompt "Disable ACPI S2 and S3"
+
+config CONFIG_ENABLE_ASSERT
+    bool
+    default y
+    prompt "Enable checking assertion failure"
+
+config CONFIG_DEBUG_ATA
+    bool
+    default n
+    prompt "Enable debugging ATA driver"
+
+config CONFIG_SELECT_AES_GLADMAN
+    bool
+    default n
+    prompt "Select Dr. Gladmans AES assembler code"
+
+config CONFIG_CARDSTATUS
+    bool
+    default y
+    prompt "Panic if an IC card is ejected (IDMAN)"
+
+config CONFIG_IDMAN
+    bool
+    default y
+    prompt "IDMAN (CRYPTO must be enabled)"
+
+config CONFIG_NET_DRIVER
+    bool
+    default y
+    prompt "Enable NIC drivers"
+
+config CONFIG_NET_PRO100
+    bool
+    default y
+    prompt "Intel PRO/100 driver"
+
+config CONFIG_NET_PRO1000
+    bool
+    default y
+    prompt "Intel PRO/1000 driver"
+
+config CONFIG_NET_RTL8169
+    bool
+    prompt "Realtek RTL8169 driver"
+
+config CONFIG_NET_RE
+    bool
+    default n
+    prompt "Realtek Family driver"
+
+config CONFIG_NET_BNX
+    bool
+    default y
+    prompt "Broadcom NetXtreme GbE driver"
+
+config CONFIG_NET_AQ
+    bool
+    default n
+    prompt "Aquantia ACQ107 driver"
+
+config CONFIG_NET_VIRTIO_NET
+    bool
+    default y
+    prompt "Enable virtio-net for PRO1000/BNX"
+
+config CONFIG_NET_V_VIRTIO_NET
+    bool
+    default y
+    prompt "Enable virtio-net virtual driver"
+
+config CONFIG_VPN_VE
+    bool
+    default n
+    prompt "Enable ve (Virtual Ethernet) driver"
+
+config CONFIG_VTD_TRANS
+    bool
+    default n
+    prompt "Enable VT-d translation"
+
+config CONFIG_STORAGE_PD
+    bool
+    default n
+    prompt "Storage encrypting in protection domain"
+
+config CONFIG_IDMAN_PD
+    bool
+    default n
+    prompt "IDMan in protection domain"
+
+config CONFIG_VPN_PD
+    bool
+    default n
+    prompt "VPN in protection domain"
+
+config CONFIG_DISABLE_TCG_BIOS
+    bool
+    default n
+    prompt "Disable TCG BIOS (TPM related)"
+
+config CONFIG_ACPI_TIME_SOURCE
+    bool
+    default y
+    prompt "Use ACPI PM Timer as time source"
+
+config CONFIG_TCG_BIOS
+    bool
+    default n
+    prompt "TCG BIOS support"
+
+config CONFIG_BACKTRACE
+    bool
+    default n
+    prompt "Enable backtrace in panic"
+
+config CONFIG_VGA_INTEL_DRIVER
+    bool
+    default n
+    prompt "Enable vga_intel driver"
+
+config CONFIG_TTY_VGA
+    bool
+    default n
+    prompt "VMM output using VGA driver"
+
+config CONFIG_SHIFT_KEY_DEBUG
+    bool
+    default n
+    prompt "Debug shell with shift key while booting"
+
+config CONFIG_DUMP_PCI_DEV_LIST
+    bool
+    default n
+    prompt "Dump list of PCI devices"
+
+config CONFIG_IP
+    bool
+    default y
+    prompt "Enable TCP/IP stack"
+
+config CONFIG_PCI_MONITOR
+    bool
+    default y
+    prompt "PCI I/O monitor driver"
+
+config CONFIG_THREAD_1CPU
+    bool
+    prompt "Disable parallel thread processing"
+
+config CONFIG_ACPI_IGNORE_ERROR
+    bool
+    default n
+    prompt "Ignore ACPI DSDT/SSDT parse errors"
+
+config CONFIG_MAP_UEFI_MMIO
+    bool
+    default n
+    prompt "Map EfiMemoryMappedIO space"
+
+config CONFIG_DISABLE_VTD
+    bool
+    default y
+    prompt "Disable VT-d translation if enabled"
+
+config CONFIG_DMAR_PASS_THROUGH
+    bool
+    default n
+    prompt "Enable DMAR pass-through"
+
+config CONFIG_USE_SYSCALL64
+    bool
+    default n
+    prompt "Use SYSCALL for 64bit system call"
+
+config CONFIG_SQLITE
+    bool
+    default n
+    prompt "SQLite in protection domain"
