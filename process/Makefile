@@ -1,11 +1,11 @@
 CFLAGS += -Iprocess/lib
 
-bins-1 += debug help init log panic recvexample sendexample sendint
-bins-1 += serialtest shell
+bins-y += debug help init log panic recvexample sendexample sendint
+bins-y += serialtest shell
 bins-$(CONFIG_IDMAN) += idman
 bins-$(CONFIG_STORAGE) += storage
 bins-$(CONFIG_VPN) += vpn
-asubdirs-1 += lib
+asubdirs-y += lib
 bins-$(CONFIG_IP) += echoctl
 bins-$(CONFIG_PCI_MONITOR) += monitor
 psubdirs-$(CONFIG_SQLITE) += sqlite
