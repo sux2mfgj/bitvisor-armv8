@@ -8,6 +8,7 @@ OBJCOPY = objcopy
 SED = sed
 SIZE = size
 STRIP = strip
+MCONF	:=
 
 # files
 CONFIG = .config

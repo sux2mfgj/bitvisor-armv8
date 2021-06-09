@@ -13,6 +13,7 @@ FORMAT = elf32-i386
 elf    = $(NAME).elf
 map    = $(NAME).map
 lds    = $(NAME).lds
+kconfig = Kconfig
 target = $(elf)
 
 subdirs-y += core drivers
@@ -49,15 +50,12 @@ build-all : $(CONFIG) defconfig
 clean-all :
 	$(MAKE) $(V-makeopt-$(V)) -f Makefile.clean clean-dir DIR=$(DIR) V=$(V)
 
-#.PHONY : config
-#config : $(CONFIG)
-#	$(MAKE) -f Makefile.config config
-
-#$(CONFIG) : Makefile.config
-#	: >> $(CONFIG)
-#	$(MAKE) -f Makefile.config update-config
-
-#defconfig :
-#	cp defconfig.tmpl defconfig
+.PHONY : config
+config : $(CONFIG)
+$(CONFIG) :
+ifeq ($(MCONF),)
+	$(error mconf is not defined. Please setup the MCONF variable)
+endif
+	$(MCONF) $(kconfig)
 
 $(dir)process/$(outp_p) : $(process-depends-y)
