@@ -46,7 +46,7 @@
 #include "panic.h"
 #include "pcpu.h"
 #include "printf.h"
-#include "process.h" 
+#include "process.h"
 #include "regs.h"
 #include "sleep.h"
 #include "string.h"

@@ -1,0 +1,5 @@
+
+
+config AARCH64
+    bool
+    default y

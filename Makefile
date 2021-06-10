@@ -17,7 +17,7 @@ lds    = $(NAME).lds
 kconfig = Kconfig
 target = $(elf)
 
-subdirs-y += core drivers
+subdirs-y += arch core drivers
 subdirs-$(CONFIG_STORAGE) += storage
 subdirs-$(CONFIG_STORAGE_IO) += storage_io
 subdirs-$(CONFIG_VPN) += vpn
