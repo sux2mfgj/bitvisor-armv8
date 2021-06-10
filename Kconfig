@@ -6,6 +6,12 @@ source "arch/$(ARCH)/Kconfig"
 
 endmenu
 
+menu "Drivers"
+
+source "drivers/Kconfig"
+
+endmenu
+
 config DEBUG_GDB
     bool
     default n
@@ -76,15 +82,6 @@ config LOG_TO_IEEE1394
     default y
     prompt "Log to IEEE 1394 host"
 
-config ATA_DRIVER
-    bool
-    default y
-    prompt "Enable ATA driver"
-
-config NVME_DRIVER
-    bool
-    default y
-    prompt "Enable NVMe driver"
 
 config STORAGE
     bool
@@ -106,10 +103,6 @@ config VPN
     default y
     prompt "Enable IPsec VPN Client"
 
-config USB_DRIVER
-    bool
-    default y
-    prompt "Enable USB driver"
 
 config SHADOW_UHCI
     bool
@@ -171,11 +164,6 @@ config ENABLE_ASSERT
     default y
     prompt "Enable checking assertion failure"
 
-config DEBUG_ATA
-    bool
-    default n
-    prompt "Enable debugging ATA driver"
-
 config SELECT_AES_GLADMAN
     bool
     default n
@@ -190,55 +178,6 @@ config IDMAN
     bool
     default y
     prompt "IDMAN (CRYPTO must be enabled)"
-
-config NET_DRIVER
-    bool
-    default y
-    prompt "Enable NIC drivers"
-
-config NET_PRO100
-    bool
-    default y
-    prompt "Intel PRO/100 driver"
-
-config NET_PRO1000
-    bool
-    default y
-    prompt "Intel PRO/1000 driver"
-
-config NET_RTL8169
-    bool
-    prompt "Realtek RTL8169 driver"
-
-config NET_RE
-    bool
-    default n
-    prompt "Realtek Family driver"
-
-config NET_BNX
-    bool
-    default y
-    prompt "Broadcom NetXtreme GbE driver"
-
-config NET_AQ
-    bool
-    default n
-    prompt "Aquantia ACQ107 driver"
-
-config NET_VIRTIO_NET
-    bool
-    default y
-    prompt "Enable virtio-net for PRO1000/BNX"
-
-config NET_V_VIRTIO_NET
-    bool
-    default y
-    prompt "Enable virtio-net virtual driver"
-
-config VPN_VE
-    bool
-    default n
-    prompt "Enable ve (Virtual Ethernet) driver"
 
 config VTD_TRANS
     bool
@@ -280,16 +219,6 @@ config BACKTRACE
     default n
     prompt "Enable backtrace in panic"
 
-config VGA_INTEL_DRIVER
-    bool
-    default n
-    prompt "Enable vga_intel driver"
-
-config TTY_VGA
-    bool
-    default n
-    prompt "VMM output using VGA driver"
-
 config SHIFT_KEY_DEBUG
     bool
     default n
@@ -309,11 +238,6 @@ config IP
     bool
     default y
     prompt "Enable TCP/IP stack"
-
-config PCI_MONITOR
-    bool
-    default y
-    prompt "PCI I/O monitor driver"
 
 config THREAD_1CPU
     bool
@@ -348,3 +272,5 @@ config SQLITE
     bool
     default n
     prompt "SQLite in protection domain"
+
+
