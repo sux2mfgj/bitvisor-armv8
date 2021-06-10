@@ -1,0 +1,9 @@
+
+config X86
+    bool
+    default y
+
+config 64
+    bool
+    default y
+    prompt "64bit VMM"

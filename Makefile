@@ -1,5 +1,6 @@
 DIR ?= .
 V ?= 0
+ARCH	:= x86_64
 include Makefile.common
 
 .PHONY : all
@@ -51,11 +52,13 @@ clean-all :
 	$(MAKE) $(V-makeopt-$(V)) -f Makefile.clean clean-dir DIR=$(DIR) V=$(V)
 
 .PHONY : config
-config : $(CONFIG)
-$(CONFIG) :
+#$(CONFIG) : config
+config :
 ifeq ($(MCONF),)
 	$(error mconf is not defined. Please setup the MCONF variable)
 endif
-	$(MCONF) $(kconfig)
+	 ARCH=$(ARCH) $(MCONF) $(kconfig)
 
 $(dir)process/$(outp_p) : $(process-depends-y)
+
+export ARCH

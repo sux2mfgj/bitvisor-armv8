@@ -1,9 +1,6 @@
-mainmenu  "BitVisor/ Configuration"
+mainmenu  "BitVisor $(ARCH)/ Configuration"
 
-config 64
-    bool
-    default y
-    prompt "64bit VMM"
+source "arch/$(ARCH)/Kconfig"
 
 config DEBUG_GDB
     bool
