@@ -1,5 +1,13 @@
 
-
 config AARCH64
     bool
     default y
+
+menu "AArch64 Boards Support"
+
+config AARCH64_VIRT
+    bool
+    default y
+    prompt "Qemu Aarch64 virt board support"
+
+endmenu

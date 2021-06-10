@@ -1,6 +1,10 @@
 mainmenu  "BitVisor $(ARCH)/ Configuration"
 
+menu "Architecture dependents"
+
 source "arch/$(ARCH)/Kconfig"
+
+endmenu
 
 config DEBUG_GDB
     bool
@@ -295,6 +299,11 @@ config DUMP_PCI_DEV_LIST
     bool
     default n
     prompt "Dump list of PCI devices"
+
+config NETAPI
+    bool
+    default y
+    prompt "enable netapi"
 
 config IP
     bool

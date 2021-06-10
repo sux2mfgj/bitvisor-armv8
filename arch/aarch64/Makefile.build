@@ -1,0 +1,7 @@
+
+CFLAGS = -nostdinc -g -O \
+		 -ffreestanding -fno-builtin -fno-stack-protector $(backtrace) -fno-PIE \
+		 -fno-strict-aliasing -Wall -Wno-address-of-packed-member $(CONSTANTS-y) \
+		 -I$(DIR) -Iinclude
+ASFLAGS = -g -Wa,-I,$(DIR)
+LDFLAGS = -g -nostdlib -Wl,--build-id=none -static

@@ -44,6 +44,7 @@ CFLAGS += -Ivpn/lib
 CFLAGS += -Iedk/Foundation/Efi/Include/ -Iedk/Foundation/Framework/Include/
 CFLAGS += -Iedk/Foundation/Include/ -Iedk/Foundation/Efi/
 
+objs-y += dummy.o
 objs-$(CONFIG_X86) += acpi.o acpi_dsdt.o ap.o assert.o beep.o cache.o callrealmode.o
 objs-$(CONFIG_X86) += calluefi.o config.o cpu.o cpu_emul.o cpu_interpreter.o cpu_mmu.o
 objs-$(CONFIG_X86) += cpu_mmu_spt.o cpu_seg.o cpu_stack.o cpuid.o cpuid_pass.o current.o

@@ -1,0 +1,2 @@
+
+objs-y += entry.o
