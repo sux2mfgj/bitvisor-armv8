@@ -1,4 +1,4 @@
 
 
-subdirs-$(CONFIG_AARCH64_VIRT) += boards/virt
+subdirs-y += boards/$(shell echo $(CONFIG_AARCH64_BOARD))
 objs-y +=

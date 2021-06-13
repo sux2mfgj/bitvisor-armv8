@@ -5,3 +5,6 @@ CFLAGS = -nostdinc -g -O \
 		 -I$(DIR) -Iinclude
 ASFLAGS = -g -Wa,-I,$(DIR)
 LDFLAGS = -g -nostdlib -Wl,--build-id=none -static
+
+
+LDSCRIPT	:= boards/$(shell echo $(CONFIG_AARCH64_BOARD))/bitvisor.lds

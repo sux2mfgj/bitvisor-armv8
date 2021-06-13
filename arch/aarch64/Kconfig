@@ -6,8 +6,11 @@ config AARCH64
 menu "AArch64 Boards Support"
 
 config AARCH64_VIRT
-    bool
+    bool "Qemu Aarch64 virt board support"
     default y
-    prompt "Qemu Aarch64 virt board support"
+
+config AARCH64_BOARD
+    string
+    default virt if AARCH64_VIRT
 
 endmenu

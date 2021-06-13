@@ -4,7 +4,6 @@ build-dir : build-target
 
 include Makefile.common
 include $(CONFIG)
-include arch/$(ARCH)/Makefile.build
 backtrace-n = -fomit-frame-pointer
 backtrace-y = -fno-omit-frame-pointer
 backtrace = $(backtrace-$(CONFIG_BACKTRACE))

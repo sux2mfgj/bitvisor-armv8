@@ -14,7 +14,7 @@ NAME   = bitvisor
 FORMAT = elf32-i386
 elf    = $(NAME).elf
 map    = $(NAME).map
-lds    = $(NAME).lds
+lds    = arch/$(ARCH)/$(LDSCRIPT)
 kconfig = Kconfig
 target = $(elf)
 

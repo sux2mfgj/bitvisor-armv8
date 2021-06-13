@@ -1,5 +1,7 @@
 # -*- makefile-gmake -*-
 
+include arch/$(ARCH)/Makefile.build
+
 # commands
 AR = $(CROSS_COMPILE)ar
 CC = $(CROSS_COMPILE)gcc
