@@ -3,6 +3,7 @@ include Makefile.common
 clean_p = clean
 
 include $(dir)Makefile
+include $(CONFIG)
 subouto := $(subdirs-y:%=$(dir)%/$(outo))
 subouto += $(subdirs-0:%=$(dir)%/$(outo))
 subouto += $(subdirs-:%=$(dir)%/$(outo))

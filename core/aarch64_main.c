@@ -45,7 +45,7 @@
 //#include "osloader.h"
 //#include "panic.h"
 //#include "pcpu.h"
-//#include "printf.h"
+#include "printf.h"
 //#include "process.h"
 //#include "regs.h"
 //#include "sleep.h"
@@ -74,14 +74,14 @@
 //static struct uuid pass_auth_uuid = UEFI_BITVISOR_PASS_AUTH_UUID;
 //static struct uuid cpu_type_uuid  = UEFI_BITVISOR_CPU_TYPE_UUID;
 //
-//static void
-//print_boot_msg (void)
-//{
-//	printf ("Starting BitVisor...\n");
-//	printf ("Copyright (c) 2007, 2008 University of Tsukuba\n");
-//	printf ("All rights reserved.\n");
-//}
-//
+static void
+print_boot_msg (void)
+{
+	printf ("Starting BitVisor...\n");
+	printf ("Copyright (c) 2007, 2008 University of Tsukuba\n");
+	printf ("All rights reserved.\n");
+}
+
 //static void
 //print_startvm_msg (void)
 //{
@@ -532,6 +532,6 @@ vmm_main ()
 //INITFUNC ("pcpu5", create_pass_vm);
 //INITFUNC ("dbsp5", wait_for_create_pass_vm);
 //INITFUNC ("bsp0", debug_on_shift_key);
-//INITFUNC ("global1", print_boot_msg);
+INITFUNC ("global1", print_boot_msg);
 //INITFUNC ("global3", copy_minios);
 //INITFUNC ("global3", get_shiftflags);
