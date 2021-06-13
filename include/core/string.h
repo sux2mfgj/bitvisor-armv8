@@ -32,8 +32,6 @@
 
 #include <core/types.h>
 
-#define USE_BUILTIN_STRING
-
 static inline void *
 memset_slow (void *addr, int val, int len)
 {
@@ -108,23 +106,23 @@ strncmp_slow (char *s1, char *s2, int len)
 	return r;
 }
 
-#ifdef USE_BUILTIN_STRING
+#ifdef CONFIG_USE_BUILTIN_STRING
 #	define memset(addr, val, len)	memset_builtin (addr, val, len)
 #	define memcpy(dest, src, len)	memcpy_builtin (dest, src, len)
 #	define strcmp(s1, s2)		strcmp_builtin (s1, s2)
 #	define memcmp(p1, p2, len)	memcmp_builtin (p1, p2, len)
 #	define strlen(p)		strlen_builtin (p)
 #	define strncmp(s1, s2, len)	strncmp_builtin (s1, s2, len)
-#else  /* USE_BUILTIN_STRING */
+#else  /* CONFIG_USE_BUILTIN_STRING */
 #	define memset(addr, val, len)	memset_slow (addr, val, len)
 #	define memcpy(dest, src, len)	memcpy_slow (dest, src, len)
 #	define strcmp(s1, s2)		strcmp_slow (s1, s2)
 #	define memcmp(p1, p2, len)	memcmp_slow (p1, p2, len)
 #	define strlen(p)		strlen_slow (p)
 #	define strncmp(s1, s2, len)	strncmp_slow (s1, s2, len)
-#endif /* USE_BUILTIN_STRING */
+#endif /* CONFIG_USE_BUILTIN_STRING */
 
-#ifdef USE_BUILTIN_STRING
+#ifdef CONFIG_USE_BUILTIN_STRING
 static inline void *
 memset_builtin (void *addr, int val, int len)
 {
@@ -160,6 +158,6 @@ strncmp_builtin (char *s1, char *s2, int len)
 {
 	return __builtin_strncmp (s1, s2, len);
 }
-#endif /* USE_BUILTIN_STRING */
+#endif /* CONFIG_USE_BUILTIN_STRING */
 
 #endif

@@ -273,4 +273,7 @@ config SQLITE
     default n
     prompt "SQLite in protection domain"
 
+config USE_BUILTIN_STRING
+    bool "Use gcc builtin string"
+    default y
 
