@@ -1,34 +1,32 @@
-ENTRY(_start)
+ENTRY(entry)
 
-SECTIONS
-{
-    /* for initial physical address space*/
-    . = 0x40000000;
+base = 0x78000000;
+
+SECTIONS {
+    . = base;
     .text : {
-        *(.boot.text);
-        *(.text);
-    }
+		text = .;
+		*(.entry)
+		*(.text)
+		codeend = .;
+	}
     .data : {
-        *(.data)
-    }
-    .rodata : {
-        _module_init_start = .;
-        *(.module_init);
-        _module_init_end = .;
-    }
-    _bss_start =.;
+		data = .;
+		*(.data)
+		. = ALIGN (8);
+        __initfunc_start = .;
+        *(.initfunc)
+        __initfunc_end = .;
+		__process_builtin = .;
+		*(.processes)
+		__process_builtin_end = .;
+		dataend = .;
+	}
     .bss : {
-        *(.bss)
-        . = ALIGN(8);
-        . = . + 0x1000;
-        _stack_top = .;
-
-        . = ALIGN(8);
-        _guest_stack_end = .;
-        . += 0x1000;
-        _guest_stack_top = .;
-        . += 0x1000;
-        _kstack_for_guest = .;
-    }
-    _bss_end = .;
+		bss = .;
+		*(.bss)
+		*(COMMON)
+		. = ALIGN (4096);
+	}
+	end = .;
 }
