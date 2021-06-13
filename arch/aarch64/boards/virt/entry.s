@@ -30,7 +30,7 @@ entry:
 
     //isb
 
-    //bl main
+    bl vmm_main
     b .
 
 .globl unknown_el
