@@ -35,7 +35,7 @@
 //#include "convert.h"
 //#include "current.h"
 //#include "debug.h"
-//#include "initfunc.h"
+#include "initfunc.h"
 //#include "keyboard.h"
 #include "linkage.h"
 //#include "loadbootsector.h"
@@ -523,8 +523,8 @@ vmm_main ()
 	//uefi_booted = !mi_arg;
 	//if (!uefi_booted)
 	//	memcpy (&mi, mi_arg, sizeof (struct multiboot_info));
-	//initfunc_init ();
-	//call_initfunc ("global");
+	initfunc_init ();
+	call_initfunc ("global");
 	//start_all_processors (bsp_proc, ap_proc);
 }
 
