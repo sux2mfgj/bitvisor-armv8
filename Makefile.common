@@ -12,6 +12,8 @@ SIZE = size
 STRIP = $(CROSS_COMPILE)strip
 MCONF	:=
 
+CFLAGS	:= $(CFLAGS) -Iinclude/arch/$(ARCH)
+
 # files
 CONFIG = .config
 dir := $(DIR:/=)/
