@@ -82,3 +82,7 @@ config TTY_VGA
     bool
     default n
     prompt "VMM output using VGA driver"
+
+config UART_DRIVER
+    bool "UART driver"
+    default n
