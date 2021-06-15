@@ -1,0 +1,4 @@
+
+config DEVICE_TREE
+    bool "device tree parser"
+    default n

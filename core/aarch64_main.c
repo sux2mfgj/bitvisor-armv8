@@ -82,6 +82,17 @@ print_boot_msg (void)
 	printf ("All rights reserved.\n");
 }
 
+#ifdef USE_FDT
+
+static void *fdt_base;
+
+void *get_fdt_base(void)
+{
+    return fdt_base;
+}
+
+#endif // USE_FDT
+
 //static void
 //print_startvm_msg (void)
 //{
@@ -518,11 +529,16 @@ print_boot_msg (void)
 //
 
 asmlinkage void
-vmm_main ()
+vmm_main (void *bootarg)
 {
-	//uefi_booted = !mi_arg;
+#ifdef USE_FDT
+    fdt_base = bootarg;
+#else
+	//uefi_booted = !bootarg;
 	//if (!uefi_booted)
-	//	memcpy (&mi, mi_arg, sizeof (struct multiboot_info));
+	//	memcpy (&mi, bootarg, sizeof (struct multiboot_info));
+#endif
+
 	initfunc_init ();
 	call_initfunc ("global");
 	//start_all_processors (bsp_proc, ap_proc);

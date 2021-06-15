@@ -38,6 +38,7 @@ CONSTANTS-$(CONFIG_DISABLE_VTD) += -DDISABLE_VTD
 CONSTANTS-$(CONFIG_DMAR_PASS_THROUGH) += -DDMAR_PASS_THROUGH
 CONSTANTS-$(CONFIG_USE_SYSCALL64) += -DUSE_SYSCALL64
 CONSTANTS-$(CONFIG_USE_BUILTIN_STRING) += -DUSE_BUILTIN_STRING
+CONSTANTS-$(CONFIG_DEVICE_TREE) += -DUSE_FDT
 
 CONSTANTS-y += -DUSE_PAE
 
@@ -65,3 +66,5 @@ objs-$(CONFIG_X86) += vmmcall_log.o vmmcall_status.o vpn_ve.o vramwrite.o vt.o v
 objs-$(CONFIG_X86) += vt_exitreason.o vt_init.o vt_io.o vt_main.o vt_msr.o vt_paging.o
 objs-$(CONFIG_X86) += vt_panic.o vt_regs.o wakeup.o xsetbv.o xsetbv_pass.o uefiutil.o
 objs-$(CONFIG_X86) += uefi_param_ext.o nmi.o initipi.o vt_shadow_vt.o
+
+objs-$(CONFIG_DEVICE_TREE) += fdt.o

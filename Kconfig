@@ -12,6 +12,12 @@ source "drivers/Kconfig"
 
 endmenu
 
+menu "General"
+
+source "core/Kconfig"
+
+endmenu
+
 config DEBUG_GDB
     bool
     default n
