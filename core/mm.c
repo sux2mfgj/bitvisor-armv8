@@ -113,6 +113,159 @@ mm_page_get_allocsize (int n)
 	return 4096 << n;
 }
 
+static int
+get_alloc_pages_size (int n, int *second)
+{
+	int sz = n * PAGESIZE;
+	for (int i = 0; i < NUM_OF_ALLOCSIZE; i++) {
+		int allocsize = mm_page_get_allocsize (i);
+		if (allocsize >= sz) {
+			*second = -1;
+			return i;
+		}
+		if (i > 0 && allocsize + mm_page_get_allocsize (i - 1) >= sz) {
+			int secondsz = sz - allocsize;
+			int j;
+			for (j = 0; j < i - 1; j++)
+				if (mm_page_get_allocsize (j) >= secondsz)
+					break;
+			*second = j;
+			return i;
+		}
+	}
+	return -1;
+}
+
+static struct page *
+mm_page_free_2ndhalf (struct page *p)
+{
+	int n = p->allocsize;
+	//ASSERT (n > 0);
+	n--;
+	virt_t virt = page_to_virt (p);
+	int s = mm_page_get_allocsize (n);
+	//ASSERT (!(virt & s));
+	p->allocsize = n;
+	struct page *q = virt_to_page (virt | s);
+	q->type = PAGE_TYPE_FREE;
+	LIST1_ADD (list1_freepage[n], q);
+	return q;
+}
+
+static struct page *
+mm_page_alloc_sub (int n)
+{
+	for (int i = n; i < NUM_OF_ALLOCSIZE; i++) {
+		struct page *p = LIST1_POP (list1_freepage[i]);
+		if (p) {
+			while (p->allocsize > n)
+				mm_page_free_2ndhalf (p);
+			return p;
+		}
+	}
+	return NULL;
+}
+
+static struct page *
+mm_page_alloc (int n)
+{
+	struct page *p;
+	//enum page_type old_type;
+
+	//ASSERT (n < NUM_OF_ALLOCSIZE);
+	//spinlock_lock (&mm_lock);
+	p = mm_page_alloc_sub (n);
+	if (!p) {
+		//spinlock_unlock (&mm_lock);
+		//panic ("%s(%d): Out of memory", __func__, n);
+	}
+	/* p->type must be set before unlock, because the
+	 * mm_page_free() function may merge blocks if the type is
+	 * PAGE_TYPE_FREE. */
+	//old_type = p->type;
+	p->type = PAGE_TYPE_ALLOCATED;
+	//spinlock_unlock (&mm_lock);
+	/* The old_type must be PAGE_TYPE_FREE, or the memory will be
+	 * corrupted.  The ASSERT is called after unlock to avoid
+	 * deadlocks during panic. */
+	//ASSERT (old_type == PAGE_TYPE_FREE);
+	return p;
+}
+
+static struct page *
+mm_page_alloc_cont (int n, int m)
+{
+	int s;
+	virt_t virt;
+	struct page *p, *q;
+	//enum page_type old_ptype, old_qtype;
+
+	//ASSERT (n < NUM_OF_ALLOCSIZE);
+	//ASSERT (m < NUM_OF_ALLOCSIZE);
+	s = mm_page_get_allocsize (n);
+	//spinlock_lock (&mm_lock);
+	LIST1_FOREACH (list1_freepage[n], p) {
+		virt = page_to_virt (p);
+		if (virt & s)
+			goto not_found;
+		q = virt_to_page (virt | s);
+		if (q->type == PAGE_TYPE_FREE && q->allocsize >= m) {
+			LIST1_DEL (list1_freepage[n], p);
+			goto found;
+		}
+	}
+not_found:
+	p = mm_page_alloc_sub (n + 1);
+	if (!p) {
+		//spinlock_unlock (&mm_lock);
+		//panic ("%s(%d,%d): Out of memory", __func__, n, m);
+	}
+	q = mm_page_free_2ndhalf (p);
+found:
+	LIST1_DEL (list1_freepage[q->allocsize], q);
+	//old_ptype = p->type;
+	//old_qtype = q->type;
+	p->type = PAGE_TYPE_ALLOCATED_CONT;
+	while (q->allocsize > m)
+		mm_page_free_2ndhalf (q);
+	q->type = PAGE_TYPE_ALLOCATED;
+	//spinlock_unlock (&mm_lock);
+	//ASSERT (old_ptype == PAGE_TYPE_FREE);
+	//ASSERT (old_qtype == PAGE_TYPE_FREE);
+	return p;
+}
+
+/* allocate n or more pages */
+int
+alloc_pages (void **virt, u64 *phys, int n)
+{
+	struct page *p;
+	int i, j;
+
+	i = get_alloc_pages_size (n, &j);
+	if (i >= 0)
+		goto found;
+	//panic ("alloc_pages (%d) failed.", n);
+	return -1;
+found:
+	if (j < 0)
+		p = mm_page_alloc (i);
+	else
+		p = mm_page_alloc_cont (i, j);
+	if (virt)
+		*virt = (void *)page_to_virt (p);
+	if (phys)
+		*phys = page_to_phys (p);
+	return 0;
+}
+
+/* allocate a page */
+int
+alloc_page (void **virt, u64 *phys)
+{
+	return alloc_pages (virt, phys, 1);
+}
+
 static char *
 mm_page_free_sub (struct page *p)
 {
