@@ -1,9 +1,10 @@
 ENTRY(entry)
 
-base = 0x78000000;
+phys_base = 0x78000000;
 
 SECTIONS {
-    . = base;
+    . = phys_base;
+    head = .;
     .text : {
 		text = .;
 		*(.entry)
