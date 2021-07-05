@@ -34,4 +34,7 @@
 #include "constants.h"
 #include "types.h"
 
+#define VMMSIZE_ALL		(128 * 1024 * 1024)
+#define NUM_OF_PAGES		(VMMSIZE_ALL >> PAGESIZE_SHIFT)
+
 #endif

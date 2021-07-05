@@ -12,7 +12,7 @@ SIZE = size
 STRIP = $(CROSS_COMPILE)strip
 MCONF	:=
 
-CFLAGS	:= $(CFLAGS) -Iinclude/arch/$(ARCH)
+CFLAGS	:= $(CFLAGS) -Iinclude/arch/$(ARCH) -Iinclude/
 
 # files
 CONFIG = .config

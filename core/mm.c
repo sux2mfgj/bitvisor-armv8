@@ -30,9 +30,8 @@
 #include "mm.h"
 #include "list.h"
 #include "initfunc.h"
+#include "assert.h"
 
-#define VMMSIZE_ALL		(128 * 1024 * 1024)
-#define NUM_OF_PAGES		(VMMSIZE_ALL >> PAGESIZE_SHIFT)
 #define NUM_OF_ALLOCSIZE	13
 
 enum page_type {
@@ -361,4 +360,4 @@ mm_init_global (void)
 	}
 }
 
-INITFUNC ("global2", mm_init_global);
+INITFUNC ("global3", mm_init_global);
