@@ -37,7 +37,7 @@ struct panic_pcpu_data {
 	bool shell_ready;
 };
 
-void auto_reboot (void);
-void do_panic_reboot (void);
+//void auto_reboot (void);
+//void do_panic_reboot (void);
 
 #endif

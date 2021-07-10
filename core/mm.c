@@ -31,8 +31,15 @@
 #include "list.h"
 #include "initfunc.h"
 #include "assert.h"
+#include "panic.h"
 
 #define NUM_OF_ALLOCSIZE	13
+#define NUM_OF_SMALL_ALLOCSIZE	5
+#define SMALL_ALLOCSIZE(n)	(0x80 << (n))
+#define NUM_OF_TINY_ALLOCSIZE	3
+#define TINY_ALLOCSIZE(n)	(0x10 << (n))
+#define FIND_NEXT_BIT(bitmap)	(~(bitmap) & ((bitmap) + 1))
+#define BIT_TO_INDEX(bit)	(__builtin_ffs ((bit)) - 1)
 
 enum page_type {
 	PAGE_TYPE_FREE,
@@ -51,6 +58,16 @@ struct page {
 	unsigned int allocsize : 8;
 	unsigned int small_allocsize : 8;
 };
+
+struct tiny_allocdata {
+	LIST1_DEFINE (struct tiny_allocdata);
+	u32 tiny_bitmap;
+	u8 tiny_allocsize;
+};
+
+static LIST1_DEFINE_HEAD (struct tiny_allocdata,
+			  tiny_freelist[NUM_OF_TINY_ALLOCSIZE]);
+static LIST1_DEFINE_HEAD (struct page, small_freelist[NUM_OF_SMALL_ALLOCSIZE]);
 
 extern u8 phys_base[];
 extern u8 end[], head[];
@@ -328,6 +345,181 @@ mm_page_free (struct page *p)
     // panic is not implemented
 	//if (fail)
 		//panic ("%s: %s", __func__, fail);
+}
+
+static int
+get_small_allocsize (unsigned int len)
+{
+	for (int i = 0; i < NUM_OF_SMALL_ALLOCSIZE; i++)
+		if (len <= SMALL_ALLOCSIZE (i))
+			return i;
+	return -1;
+}
+
+static int
+get_tiny_allocsize (unsigned int len)
+{
+	for (int i = 0; i < NUM_OF_TINY_ALLOCSIZE; i++)
+		if (len <= TINY_ALLOCSIZE (i))
+			return i;
+	return -1;
+}
+
+static virt_t
+small_alloc (int small_allocsize)
+{
+	ASSERT (small_allocsize >= 0);
+	ASSERT (small_allocsize < NUM_OF_SMALL_ALLOCSIZE);
+	int nbits = PAGESIZE / SMALL_ALLOCSIZE (small_allocsize);
+	u32 full = (2U << (nbits - 1)) - 1;
+	u32 n;
+	struct page *p;
+	//spinlock_lock (&mm_small_lock);
+	LIST1_FOREACH (small_freelist[small_allocsize], p) {
+		n = FIND_NEXT_BIT (p->small_bitmap);
+		p->small_bitmap |= n;
+		if (p->small_bitmap == full)
+			LIST1_DEL (small_freelist[small_allocsize], p);
+		goto ok;
+	}
+	//spinlock_unlock (&mm_small_lock);
+	p = mm_page_alloc (0);
+	ASSERT (p);
+	ASSERT (p->type == PAGE_TYPE_ALLOCATED);
+	p->type = PAGE_TYPE_ALLOCATED_SMALL;
+	n = 1;
+	p->small_allocsize = small_allocsize;
+	p->small_bitmap = n;
+	//spinlock_lock (&mm_small_lock);
+	LIST1_PUSH (small_freelist[small_allocsize], p);
+ok:
+	//spinlock_unlock (&mm_small_lock);
+	int i = BIT_TO_INDEX (n);
+	ASSERT (i >= 0);
+	ASSERT (i < nbits);
+	return page_to_virt (p) + SMALL_ALLOCSIZE (small_allocsize) * i;
+}
+
+static virt_t
+tiny_alloc (int tiny_allocsize)
+{
+	ASSERT (tiny_allocsize >= 0);
+	ASSERT (tiny_allocsize < NUM_OF_TINY_ALLOCSIZE);
+	int nbits = 32;
+	u32 n;
+	struct tiny_allocdata *p;
+	ASSERT (sizeof *p <= 2 * TINY_ALLOCSIZE (0));
+	ASSERT (sizeof *p <= TINY_ALLOCSIZE (1));
+	u32 empty_bitmap = tiny_allocsize ? 1 : 3;
+	//spinlock_lock (&mm_tiny_lock);
+	LIST1_FOREACH (tiny_freelist[tiny_allocsize], p) {
+		n = FIND_NEXT_BIT (p->tiny_bitmap);
+		p->tiny_bitmap |= n;
+		if (!~p->tiny_bitmap)
+			LIST1_DEL (tiny_freelist[tiny_allocsize], p);
+		goto ok;
+	}
+	//spinlock_unlock (&mm_tiny_lock);
+	int plen = TINY_ALLOCSIZE (tiny_allocsize) * nbits;
+	p = (void *)small_alloc (get_small_allocsize (plen));
+	n = FIND_NEXT_BIT (empty_bitmap);
+	p->tiny_allocsize = tiny_allocsize;
+	p->tiny_bitmap = empty_bitmap | n;
+	//spinlock_lock (&mm_tiny_lock);
+	LIST1_PUSH (tiny_freelist[tiny_allocsize], p);
+ok:
+	//spinlock_unlock (&mm_tiny_lock);
+	int i = BIT_TO_INDEX (n);
+	ASSERT (i > 0);
+	ASSERT (i < nbits);
+	return (virt_t)p + TINY_ALLOCSIZE (tiny_allocsize) * i;
+}
+
+static unsigned int
+tiny_getlen (virt_t start_of_block)
+{
+	struct tiny_allocdata *p = (void *)start_of_block;
+	int tiny_allocsize = p->tiny_allocsize;
+	ASSERT (tiny_allocsize >= 0);
+	ASSERT (tiny_allocsize < NUM_OF_TINY_ALLOCSIZE);
+	return TINY_ALLOCSIZE (tiny_allocsize);
+}
+
+static void
+small_free (struct page *p, u32 page_offset)
+{
+	ASSERT (p->type == PAGE_TYPE_ALLOCATED_SMALL);
+	int small_allocsize = p->small_allocsize;
+	ASSERT (small_allocsize >= 0);
+	ASSERT (small_allocsize < NUM_OF_SMALL_ALLOCSIZE);
+	int nbits = PAGESIZE / SMALL_ALLOCSIZE (small_allocsize);
+	u32 full = (2U << (nbits - 1)) - 1;
+	ASSERT (!(page_offset % SMALL_ALLOCSIZE (small_allocsize)));
+	int i = page_offset / SMALL_ALLOCSIZE (small_allocsize);
+	ASSERT (i < nbits);
+	u32 n = 1 << i;
+	//spinlock_lock (&mm_small_lock);
+	if (p->small_bitmap == full)
+		LIST1_PUSH (small_freelist[small_allocsize], p);
+	u32 new_small_bitmap = p->small_bitmap ^ n;
+	p->small_bitmap = new_small_bitmap;
+	if (!new_small_bitmap)
+		LIST1_DEL (small_freelist[small_allocsize], p);
+	//spinlock_unlock (&mm_small_lock);
+	if (new_small_bitmap & n)
+		panic ("%s: double free", __func__);
+	if (!new_small_bitmap) {
+		p->type = PAGE_TYPE_ALLOCATED;
+		mm_page_free (p);
+	}
+}
+
+static void
+tiny_free (struct page *page, virt_t start_of_block, u32 block_offset)
+{
+	struct tiny_allocdata *p = (void *)start_of_block;
+	int tiny_allocsize = p->tiny_allocsize;
+	ASSERT (tiny_allocsize >= 0);
+	ASSERT (tiny_allocsize < NUM_OF_TINY_ALLOCSIZE);
+	int nbits = 32;
+	ASSERT (!(block_offset % TINY_ALLOCSIZE (tiny_allocsize)));
+	int i = block_offset / TINY_ALLOCSIZE (tiny_allocsize);
+	ASSERT (i < nbits);
+	u32 n = 1 << i;
+	ASSERT (sizeof *p <= 2 * TINY_ALLOCSIZE (0));
+	ASSERT (sizeof *p <= TINY_ALLOCSIZE (1));
+	u32 empty_bitmap = tiny_allocsize ? 1 : 3;
+	ASSERT (!(empty_bitmap & n));
+	//spinlock_lock (&mm_tiny_lock);
+	if (!~p->tiny_bitmap)
+		LIST1_PUSH (tiny_freelist[tiny_allocsize], p);
+	u32 new_tiny_bitmap = p->tiny_bitmap ^ n;
+	p->tiny_bitmap = new_tiny_bitmap;
+	if (new_tiny_bitmap == empty_bitmap)
+		LIST1_DEL (tiny_freelist[tiny_allocsize], p);
+	//spinlock_unlock (&mm_tiny_lock);
+	if (new_tiny_bitmap & n)
+		panic ("%s: double free", __func__);
+	if (new_tiny_bitmap == empty_bitmap)
+		small_free (page, start_of_block & PAGESIZE_MASK);
+}
+
+/* allocate n bytes */
+void *
+alloc (uint len)
+{
+	void *r;
+	int small = get_small_allocsize (len);
+	if (small < 0) {
+		alloc_pages (&r, NULL, (len + 4095) / 4096);
+	} else {
+		int tiny = !small ? get_tiny_allocsize (len) : -1;
+		if (tiny < 0)
+			r = (void *)small_alloc (small);
+		else
+			r = (void *)tiny_alloc (tiny);
+	}
+	return r;
 }
 
 static void
