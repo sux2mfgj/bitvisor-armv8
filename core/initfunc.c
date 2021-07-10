@@ -32,7 +32,7 @@
 #include "string.h"
 #include "types.h"
 
-extern struct initfunc_data __initfunc_start[], __initfunc_end[];
+extern struct initfunc_data __init_0_start[], __init_0_end[];
 
 static void
 debug_print1 (struct initfunc_data *p)
@@ -46,7 +46,7 @@ debug_print (void)
 {
 	struct initfunc_data *p;
 
-	for (p = __initfunc_start; p != __initfunc_end; p++)
+	for (p = __init_0_start; p != __init_0_end; p++)
 		debug_print1 (p);
 }
 
@@ -67,7 +67,7 @@ call_initfunc (char *id)
 	struct initfunc_data *p;
 
 	l = strlen (id);
-	for (p = __initfunc_start; p != __initfunc_end; p++)
+	for (p = __init_0_start; p != __init_0_end; p++)
 		if (memcmp (p->id, id, l) == 0)
 			p->func ();
 }
@@ -94,8 +94,8 @@ initfunc_init (void)
 	struct initfunc_data *p, *q;
 
 	/* sort initfunc data */
-	for (p = __initfunc_start; p != __initfunc_end; p++)
-		for (q = p + 1; q != __initfunc_end; q++)
+	for (p = __init_0_start; p != __init_0_end; p++)
+		for (q = p + 1; q != __init_0_end; q++)
 			if (initfunc_sort_cmp (p, q))
 				swap_initfunc_data (p, q);
 	if (false)
