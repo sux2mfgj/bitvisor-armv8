@@ -1,0 +1,14 @@
+*.o
+*.d
+output.a
+.flags
+.objects
+.depends
+*.bin.s
+*.bin.debug
+*.bin
+.config*
+*.old
+*.elf
+*.image
+*.map
