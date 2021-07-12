@@ -30,7 +30,7 @@
 #ifndef _CORE_MM_H
 #define _CORE_MM_H
 
-//#include <core/mm.h>
+#include <core/mm.h>
 #include "constants.h"
 #include "types.h"
 

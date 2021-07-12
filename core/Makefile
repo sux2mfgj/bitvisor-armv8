@@ -55,8 +55,8 @@ objs-y += initfunc.o
 objs-$(CONFIG_X86) += int.o io_io.o io_iohook.o io_iopass.o keyboard.o
 objs-y += mm.o vm.o
 objs-$(CONFIG_X86) += loadbootsector.o localapic.o main.o mmio.o msg.o msr.o
-objs-y += printf.o
-objs-$(CONFIG_X86) += msr_pass.o nmi_pass.o osloader.o panic.o pcpu.o process.o
+objs-y += printf.o panic.o
+objs-$(CONFIG_X86) += msr_pass.o nmi_pass.o osloader.o pcpu.o process.o
 objs-y += putchar.o
 objs-$(CONFIG_X86) += random.o reboot.o savemsr.o seg.o serial.o sleep.o
 objs-$(CONFIG_X86) += strtol.o svm.o svm_exitcode.o svm_init.o svm_io.o svm_main.o
@@ -68,4 +68,4 @@ objs-$(CONFIG_X86) += vt_exitreason.o vt_init.o vt_io.o vt_main.o vt_msr.o vt_pa
 objs-$(CONFIG_X86) += vt_panic.o vt_regs.o wakeup.o xsetbv.o xsetbv_pass.o uefiutil.o
 objs-$(CONFIG_X86) += uefi_param_ext.o nmi.o initipi.o vt_shadow_vt.o
 
-#objs-$(CONFIG_DEVICE_TREE) += fdt.o
+objs-$(CONFIG_DEVICE_TREE) += fdt.o

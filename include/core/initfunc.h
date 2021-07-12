@@ -31,7 +31,7 @@
 #define __CORE_INITFUNC_H
 
 #define INITFUNC(id, func) struct initfunc_data __initfunc_##func \
-	__attribute__ ((__section__ (".initfunc"), aligned (1))) = { \
+	__attribute__ ((__section__ (".init0"), aligned (1))) = { \
 		__FILE__, \
 		id, \
 		func \
