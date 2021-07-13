@@ -10,7 +10,7 @@
 #include "panic.h"
 #include "string.h"
 
-extern struct fdt_driver __init_1_start[], __init_1_end[];
+extern struct fdt_driver *__init_1_start[], *__init_1_end[];
 
 struct fdt_reserve_entry {
     u64 address;
@@ -115,13 +115,6 @@ static int fdt_setup_struct(struct fdt_header* header)
     return 0;
 }
 
-static void fdt_init_global(void)
-{
-    fdt_setup_struct((struct fdt_header*)get_fdt_base());
-
-    //TODO: get memory info?
-}
-
 static struct fdt_node *fdt_parse_begin_node(struct fdt *fdt)
 {
     struct fdt_node* node = (struct fdt_node *)alloc(sizeof (struct fdt_node));
@@ -142,16 +135,33 @@ static struct fdt_node *fdt_parse_begin_node(struct fdt *fdt)
     return node;
 }
 
-static struct fdt_driver *fdt_get_driver(const char* compatible)
+static struct fdt_prop* fdt_get_compatible_prop(struct fdt_node *node)
 {
-    struct fdt_driver* p;
-	for (p = __init_1_start; p != __init_1_end; p++) {
-        char *c = p->compatible;
-
-        c = p->compatible;
+    for (struct fdt_prop* prop = node->prop_head; prop; prop = prop->next) {
+        if(!strcmp(prop->name, "compatible")) {
+            return prop;
+        }
     }
 
     return NULL;
+}
+
+static void fdt_call_driver_init(struct fdt_node *node)
+{
+    struct fdt_driver **p, *q;
+    struct fdt_prop* compatible_prop = fdt_get_compatible_prop(node);
+
+    if (!compatible_prop) {
+        return;
+    }
+
+	for (p = __init_1_start; p != __init_1_end; p++) {
+        q = *p;
+        if (!strcmp(q->compatible, compatible_prop->str_list)) {
+            q->init(node);
+            break;
+        }
+    }
 }
 
 static char* fdt_get_string(struct fdt *fdt, u32 offset)
@@ -255,6 +265,10 @@ static struct fdt_prop *fdt_parse_prop(struct fdt *fdt, struct fdt_node* parent)
 
 static void fdt_init_driver(void)
 {
+    int ret = fdt_setup_struct((struct fdt_header*)get_fdt_base());
+    if (ret)
+        panic("cannot found fdt");
+
     struct fdt_node* parent = NULL;
 
     while(1) {
@@ -298,6 +312,7 @@ static void fdt_init_driver(void)
             case FDT_END_NODE:
             {
                 fdt.struct_current += sizeof(u32);
+                fdt_call_driver_init(parent);
                 if (parent->parent) {
                     parent = parent->parent;
                 }
@@ -320,6 +335,4 @@ static void fdt_init_driver(void)
 done:
 }
 
-//TODO shouldn't be global0?
-INITFUNC ("global0", fdt_init_global);
 INITFUNC ("driver0", fdt_init_driver);

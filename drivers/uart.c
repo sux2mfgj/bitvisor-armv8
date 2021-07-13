@@ -1,6 +1,7 @@
 #include <core.h>
 #include <core/initfunc.h>
 #include <core/putchar.h>
+#include <core/fdt.h>
 
 static void *mmio_base;
 
@@ -153,10 +154,9 @@ static void uart_set_word_length(enum uart_wlen len)
     uart_write_32(UART_LCR_H, value);
 }
 
-static void init_uart(void)
+static void init_uart(void* base)
 {
-#define UART_BASE 0x09000000
-    mmio_base = (void*)UART_BASE;
+    mmio_base = base;
 
     uart_disable();
     uart_disable_parity();
@@ -171,11 +171,21 @@ static void init_uart(void)
     uart_enable();
 }
 
-static void
-uart_init_global (void)
+static void uart_fdt_init (struct fdt_node* node)
 {
-    init_uart();
+    void *base;
+    //size_t size;
+
+    base = (void*)0x09000000;
+
+    init_uart(base);
     putchar_set_func (uart_putchar, NULL);
 }
 
-INITFUNC ("global0", uart_init_global);
+static struct fdt_driver uart_fdt_driver = {
+    .compatible = "arm,pl011",
+    .init = uart_fdt_init,
+};
+
+FDT_DRIVER (uart, &uart_fdt_driver);
+//INITFUNC ("global0", uart_init_global);

@@ -98,14 +98,14 @@ void *get_fdt_base(void)
 //{
 //	printf ("Starting a virtual machine.\n");
 //}
-//
-//static void
-//load_drivers (void)
-//{
-//	printf ("Loading drivers.\n");
-//	call_initfunc ("driver");
-//}
-//
+
+static void
+load_drivers (void)
+{
+	printf ("Loading drivers.\n");
+	call_initfunc ("driver");
+}
+
 //static u8
 //detect_bios_boot_device (struct multiboot_info *mi)
 //{
@@ -532,7 +532,7 @@ asmlinkage void
 vmm_main (void *bootarg)
 {
 #ifdef USE_FDT
-    fdt_base = bootarg;
+	fdt_base = 0x40000000;
 #else
 	//uefi_booted = !bootarg;
 	//if (!uefi_booted)
@@ -541,8 +541,10 @@ vmm_main (void *bootarg)
 
 	initfunc_init ();
 	call_initfunc ("global");
-    while(1);
-	//start_all_processors (bsp_proc, ap_proc);
+	load_drivers ();
+	while (1)
+		;
+	// start_all_processors (bsp_proc, ap_proc);
 }
 
 //INITFUNC ("pcpu2", virtualization_init_pcpu);
