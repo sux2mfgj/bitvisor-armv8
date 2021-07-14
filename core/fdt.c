@@ -53,32 +53,7 @@ struct fdt {
     u32 version;
 };
 
-enum fdt_prop_type {
-    FDT_PROP_EMPTY,
-    FDT_PROP_U32,
-    FDT_PROP_U64,
-    FDT_PROP_STRING,
-    FDT_PROP_ARRAY,
-    FDT_PROP_PHANDLE,
-    FDT_PROP_STR_LIST,
-};
 
-struct fdt_prop {
-    struct fdt_prop *next;
-    char* name;
-    enum fdt_prop_type type;
-    u32 len;
-    union {
-        u32 val_u32;
-        u64 val_u64;
-        char* string;
-        void* base;
-        u32 phandle;
-        char *str_list;
-    };
-    // for reg property
-    u32 address_cells, size_cells;
-};
 
 #define FDT_ADDR_CELLS_DEFAULT 2
 #define FDT_SIZE_CELLS_DEFAULT 1
@@ -301,6 +276,8 @@ static void fdt_init_driver(void)
             case FDT_PROP:
             {
                 struct fdt_prop *prop = fdt_parse_prop(&fdt, parent);
+                prop->address_cells = parent->address_cells;
+                prop->size_cells = parent->size_cells;
                 if(parent->prop_head) {
                     prop->next = parent->prop_head->next;
                     parent->prop_head->next = prop;
@@ -333,6 +310,61 @@ static void fdt_init_driver(void)
     }
 
 done:
+}
+
+
+int fdt_get_reg_value(struct fdt_node* node, int index, enum FDT_REG_TYPE type, u64 *value)
+{
+    for (struct fdt_prop* p = node->prop_head; p; p = p->next) {
+        if(!strcmp(p->name, "reg")) {
+		// assert(p->address_cells <= 2);
+		// assert(p->size_cells <= 2);
+		// assert(p->type == FDT_PROP_ARRAY);
+
+		u64 address = 0;
+		u64 size = 0;
+		void *base = p->base + sizeof (u32) * p->address_cells * index +
+			     sizeof (u32) * p->size_cells * index;
+
+		// check a range of the data
+		if (p->base + p->len <= base) {
+			return -1;
+		}
+
+		if (p->address_cells >= 1) {
+			address = swap_u32 (*(u32 *)base);
+			base += sizeof (u32);
+		}
+
+		if (p->address_cells == 2) {
+			address = address << 32 | swap_u32 (*(u32 *)base);
+			base += sizeof (u32);
+		}
+
+		if (p->size_cells >= 1) {
+			size = swap_u32 (*(u32 *)base);
+			base += sizeof (u32);
+		}
+
+		if (p->size_cells == 2) {
+			size = size << 32 | swap_u32 (*(u32 *)base);
+			base += sizeof (u32);
+		}
+
+		switch (type) {
+		case FDT_REG_ADDRESS:
+			*value = address;
+			return 0;
+		case FDT_REG_SIZE:
+			*value = size;
+			return 0;
+		}
+
+		return -1;
+	}
+    }
+
+    return -1;
 }
 
 INITFUNC ("driver0", fdt_init_driver);

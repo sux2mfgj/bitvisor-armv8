@@ -173,12 +173,14 @@ static void init_uart(void* base)
 
 static void uart_fdt_init (struct fdt_node* node)
 {
-    void *base;
-    //size_t size;
+    int res;
+    u64 tmp;
+    res = fdt_get_reg_value(node, 0, FDT_REG_ADDRESS, &tmp);
+    if (res) {
+        panic("invalid reg value of device tree");
+    }
 
-    base = (void*)0x09000000;
-
-    init_uart(base);
+    init_uart((void* )tmp);
     putchar_set_func (uart_putchar, NULL);
 }
 
