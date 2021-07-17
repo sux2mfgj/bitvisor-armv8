@@ -13,6 +13,7 @@ STRIP = $(CROSS_COMPILE)strip
 MCONF	:=
 
 CFLAGS	:= $(CFLAGS) -Iinclude/arch/$(ARCH) -Iinclude/
+ASFLAGS += -Iinclude/arch/$(ARCH) -Iinclude/
 
 # files
 CONFIG = .config

@@ -130,7 +130,7 @@ $(subouto_p) $(subouta_p) $(suboutp_p) :
 
 # Suffix rules
 .SUFFIXES :
-.SUFFIXES : .c .s .o .bin
+.SUFFIXES : .c .s .S .o .bin
 
 .c.o :
 	$(V-info) CC $@
@@ -146,6 +146,17 @@ $(SED) -n -e '1{x' -e 's=^=$@ :>=' -e x -e '}' -e 's/#.*//' \
 -e '/\.include ".*"/{s=.*\.include "\([^"]*\)".*=<$(@D)/\1>=' -e H -e '}' \
 -e '$${x' -e 's/>.</ /g' -e 's/>$$//p' -e 's/.*: *//' \
 -e 's/$$/ :/p' -e '}' $< > $(@:.o=).d || { $(RM) $@; false; }
+
+.S.o :
+	$(V-info) CC $@
+	$(warning build asm $(ASFLAGS))
+	$(CC) $(ASFLAGS) -c -o $@ $< && \
+$(SED) -n -e '1{x' -e 's=^=$@ :>=' -e x -e '}' -e 's/#.*//' \
+-e '/\.include ".*"/{s=.*\.include "\([^"]*\)".*=<$(@D)/\1>=' -e H -e '}' \
+-e '$${x' -e 's/>.</ /g' -e 's/>$$//p' -e 's/.*: *//' \
+-e 's/$$/ :/p' -e '}' $< > $(@:.o=).d || { $(RM) $@; false; }
+
+
 
 # include
 include $(dir)$(depends)

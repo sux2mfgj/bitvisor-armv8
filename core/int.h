@@ -30,6 +30,8 @@
 #ifndef _CORE_INT_H
 #define _CORE_INT_H
 
+#include <core/int.h>
+
 #include "linkage.h"
 
 int callfunc_and_getint (asmlinkage void (*func)(void *arg), void *arg);

@@ -1,2 +1,2 @@
 
-objs-y += entry.o
+objs-y += entry.o vector.o

@@ -22,3 +22,4 @@ objs-$(CONFIG_TTY_X540) += x540.o
 objs-$(CONFIG_PCI_MONITOR) += pci_monitor.o
 objs-$(CONFIG_IEEE1394_CONCEALER) += ieee1394.o
 objs-$(CONFIG_UART_DRIVER) += uart.o
+objs-$(CONFIG_ARM_GIC_V2) += gic.o

@@ -86,3 +86,7 @@ config TTY_VGA
 config UART_DRIVER
     bool "UART driver"
     default n
+
+config ARM_GIC_V2
+    bool "Arm generic interrupt controller v2"
+    default n
