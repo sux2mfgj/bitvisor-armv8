@@ -13,4 +13,7 @@ extern struct irqc *girqc;
 
 void int_register_irqc (struct irqc *irqc);
 
+// TODO fix
+#define int_irq_eoi(irq) girqc->eoi (irq)
+
 #endif
