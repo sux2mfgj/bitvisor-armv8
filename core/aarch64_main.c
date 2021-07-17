@@ -64,16 +64,16 @@
 //#include "vt_init.h"
 //#include <share/uefi_boot.h>
 
-//static struct multiboot_info mi;
-//static u32 minios_startaddr;
-//static u32 minios_paramsaddr;
-//static u8 minios_params[OSLOADER_BOOTPARAMS_SIZE];
-//static void *bios_data_area;
-//static int shiftkey;
-//static u8 imr_master, imr_slave;
+// static struct multiboot_info mi;
+// static u32 minios_startaddr;
+// static u32 minios_paramsaddr;
+// static u8 minios_params[OSLOADER_BOOTPARAMS_SIZE];
+// static void *bios_data_area;
+// static int shiftkey;
+// static u8 imr_master, imr_slave;
 //
-//static struct uuid pass_auth_uuid = UEFI_BITVISOR_PASS_AUTH_UUID;
-//static struct uuid cpu_type_uuid  = UEFI_BITVISOR_CPU_TYPE_UUID;
+// static struct uuid pass_auth_uuid = UEFI_BITVISOR_PASS_AUTH_UUID;
+// static struct uuid cpu_type_uuid  = UEFI_BITVISOR_CPU_TYPE_UUID;
 //
 static void
 print_boot_msg (void)
@@ -95,8 +95,8 @@ get_fdt_base (void)
 
 #endif // CONFIG_DEVICE_TREE
 
-//static void
-//print_startvm_msg (void)
+// static void
+// print_startvm_msg (void)
 //{
 //	printf ("Starting a virtual machine.\n");
 //}
@@ -108,8 +108,8 @@ load_drivers (void)
 	call_initfunc ("driver");
 }
 
-//static u8
-//detect_bios_boot_device (struct multiboot_info *mi)
+// static u8
+// detect_bios_boot_device (struct multiboot_info *mi)
 //{
 //	if (mi->flags.boot_device) {
 //		return mi->boot_device.drive;
@@ -119,8 +119,8 @@ load_drivers (void)
 //	}
 //}
 //
-//static void
-//copy_minios (void)
+// static void
+// copy_minios (void)
 //{
 //	struct multiboot_modules *q;
 //
@@ -153,8 +153,8 @@ load_drivers (void)
 ///* the head 640KiB area is saved by save_bios_data_area and */
 ///* restored by reinitialize_vm. */
 ///* this function clears other RAM space that may contain sensitive data. */
-//static void
-//clear_guest_pages (void)
+// static void
+// clear_guest_pages (void)
 //{
 //	u64 base, len;
 //	u32 type;
@@ -189,8 +189,8 @@ load_drivers (void)
 //}
 //
 ///* make CPU's virtualization extension usable */
-//static void
-//virtualization_init_pcpu (void)
+// static void
+// virtualization_init_pcpu (void)
 //{
 //	currentcpu->fullvirtualize = FULLVIRTUALIZE_NONE;
 //	if (vt_available ()) {
@@ -208,8 +208,8 @@ load_drivers (void)
 //}
 //
 ///* set current vcpu for full virtualization */
-//static void
-//set_fullvirtualize (void)
+// static void
+// set_fullvirtualize (void)
 //{
 //	switch (currentcpu->fullvirtualize) {
 //	case FULLVIRTUALIZE_NONE:
@@ -225,8 +225,8 @@ load_drivers (void)
 //	}
 //}
 //
-//static void
-//initregs (void)
+// static void
+// initregs (void)
 //{
 //	current->vmctl.reset ();
 //	current->vmctl.write_general_reg (GENERAL_REG_RAX, 0);
@@ -242,8 +242,8 @@ load_drivers (void)
 //	current->vmctl.write_idtr (0, 0x3FF);
 //}
 //
-//static void
-//sync_cursor_pos (void)
+// static void
+// sync_cursor_pos (void)
 //{
 //	unsigned int row, col;
 //
@@ -251,8 +251,8 @@ load_drivers (void)
 //	callrealmode_setcursorpos (0, row, col);
 //}
 //
-//static void
-//save_bios_data_area (void)
+// static void
+// save_bios_data_area (void)
 //{
 //	void *p;
 //
@@ -263,8 +263,8 @@ load_drivers (void)
 //	unmapmem (p, 0xA0000);
 //}
 //
-//static void
-//bsp_reinitialize_devices (void)
+// static void
+// bsp_reinitialize_devices (void)
 //{
 //	/* clear screen */
 //	vramwrite_clearscreen ();
@@ -287,8 +287,8 @@ load_drivers (void)
 //	/* printf ("Starting\n"); */
 //}
 //
-//static void
-//get_tmpbuf (u32 *tmpbufaddr, u32 *tmpbufsize)
+// static void
+// get_tmpbuf (u32 *tmpbufaddr, u32 *tmpbufsize)
 //{
 //	u32 n, type;
 //	u64 base, len;
@@ -311,8 +311,8 @@ load_drivers (void)
 //	panic ("tmpbuf not found");
 //}
 //
-//static void
-//process_cpu_type_ext (void)
+// static void
+// process_cpu_type_ext (void)
 //{
 //	phys_t cpu_type_ext_addr = uefi_param_ext_get_phys (&cpu_type_uuid);
 //	if (cpu_type_ext_addr) {
@@ -335,8 +335,8 @@ load_drivers (void)
 //	}
 //}
 //
-//static void
-//bsp_init_thread (void *args)
+// static void
+// bsp_init_thread (void *args)
 //{
 //	u32 tmpbufaddr, tmpbufsize;
 //	u8 bios_boot_drive = 0;
@@ -386,8 +386,8 @@ load_drivers (void)
 //	}
 //}
 //
-//static void
-//create_pass_vm (void)
+// static void
+// create_pass_vm (void)
 //{
 //	bool bsp = false;
 //	static struct vcpu *vcpu0;
@@ -429,8 +429,8 @@ load_drivers (void)
 //	panic ("VM stopped.");
 //}
 //
-//static void
-//wait_for_create_pass_vm (void)
+// static void
+// wait_for_create_pass_vm (void)
 //{
 //	sync_all_processors ();
 //	sync_all_processors ();
@@ -439,8 +439,8 @@ load_drivers (void)
 //	sync_all_processors ();
 //}
 //
-//void
-//resume_vm (u32 wake_addr)
+// void
+// resume_vm (u32 wake_addr)
 //{
 //	current->vmctl.resume ();
 //	initregs ();
@@ -465,8 +465,8 @@ load_drivers (void)
 //	panic ("VM stopped.");
 //}
 //
-//static void
-//get_shiftflags (void)
+// static void
+// get_shiftflags (void)
 //{
 //#ifdef SHIFT_KEY_DEBUG
 //	if (uefi_booted)
@@ -478,8 +478,8 @@ load_drivers (void)
 //#endif
 //}
 //
-//static void
-//debug_on_shift_key (void)
+// static void
+// debug_on_shift_key (void)
 //{
 //	int d;
 //
@@ -492,8 +492,8 @@ load_drivers (void)
 //	msgclose (d);
 //}
 //
-//static void
-//call_parallel (void)
+// static void
+// call_parallel (void)
 //{
 //	static struct {
 //		char *name;
@@ -513,16 +513,16 @@ load_drivers (void)
 //	}
 //}
 //
-//static void
-//ap_proc (void)
+// static void
+// ap_proc (void)
 //{
 //	call_initfunc ("ap");
 //	call_parallel ();
 //	call_initfunc ("pcpu");
 //}
 //
-//static void
-//bsp_proc (void)
+// static void
+// bsp_proc (void)
 //{
 //	call_initfunc ("bsp");
 //	call_parallel ();
@@ -531,13 +531,13 @@ load_drivers (void)
 //
 
 asmlinkage void
-vmm_main (void *bootarg)
+vmm_main (void* bootarg)
 {
 #ifdef CONFIG_DEVICE_TREE
 	fdt_base = 0x40000000;
 #else
-	//uefi_booted = !bootarg;
-	//if (!uefi_booted)
+	// uefi_booted = !bootarg;
+	// if (!uefi_booted)
 	//	memcpy (&mi, bootarg, sizeof (struct multiboot_info));
 #endif // CONFIG_DEVICE_TREE
 
@@ -549,10 +549,10 @@ vmm_main (void *bootarg)
 	// start_all_processors (bsp_proc, ap_proc);
 }
 
-//INITFUNC ("pcpu2", virtualization_init_pcpu);
-//INITFUNC ("pcpu5", create_pass_vm);
-//INITFUNC ("dbsp5", wait_for_create_pass_vm);
-//INITFUNC ("bsp0", debug_on_shift_key);
+// INITFUNC ("pcpu2", virtualization_init_pcpu);
+// INITFUNC ("pcpu5", create_pass_vm);
+// INITFUNC ("dbsp5", wait_for_create_pass_vm);
+// INITFUNC ("bsp0", debug_on_shift_key);
 INITFUNC ("global1", print_boot_msg);
-//INITFUNC ("global3", copy_minios);
-//INITFUNC ("global3", get_shiftflags);
+// INITFUNC ("global3", copy_minios);
+// INITFUNC ("global3", get_shiftflags);
