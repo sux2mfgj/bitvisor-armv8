@@ -36,6 +36,7 @@
 #define _CORE_H
 #include <common.h>
 #include <core/config.h>
+#include <generated/autoconf.h>
 
 #define KB 1024
 #define MB (1024*KB)

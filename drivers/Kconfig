@@ -87,6 +87,16 @@ config UART_DRIVER
     bool "UART driver"
     default n
 
+config UART_EARLY_PUTC
+    bool "Use UART for early putc"
+    default n
+    depends on UART_DRIVER
+
+config UART_EARLY_PUTC_MMIO_BASE
+    hex "mmio base address"
+    depends on UART_EARLY_PUTC
+
 config ARM_GIC_V2
     bool "Arm generic interrupt controller v2"
     default n
+

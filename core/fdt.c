@@ -240,6 +240,7 @@ static struct fdt_prop *fdt_parse_prop(struct fdt *fdt, struct fdt_node* parent)
 
 static void fdt_init_driver(void)
 {
+    void* get_fdt_base (void);
     int ret = fdt_setup_struct((struct fdt_header*)get_fdt_base());
     if (ret)
         panic("cannot found fdt");
@@ -311,7 +312,6 @@ static void fdt_init_driver(void)
 
 done:
 }
-
 
 int fdt_get_reg_value(struct fdt_node* node, int index, enum FDT_REG_TYPE type, u64 *value)
 {

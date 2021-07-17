@@ -27,6 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <core.h>
 //##include "ap.h"
 //#include "assert.h"
 //#include "callrealmode.h"
@@ -82,16 +83,17 @@ print_boot_msg (void)
 	printf ("All rights reserved.\n");
 }
 
-#ifdef USE_FDT
+#ifdef CONFIG_DEVICE_TREE
 
-static void *fdt_base;
+static void* fdt_base;
 
-void *get_fdt_base(void)
+void*
+get_fdt_base (void)
 {
-    return fdt_base;
+	return fdt_base;
 }
 
-#endif // USE_FDT
+#endif // CONFIG_DEVICE_TREE
 
 //static void
 //print_startvm_msg (void)
@@ -531,13 +533,13 @@ load_drivers (void)
 asmlinkage void
 vmm_main (void *bootarg)
 {
-#ifdef USE_FDT
+#ifdef CONFIG_DEVICE_TREE
 	fdt_base = 0x40000000;
 #else
 	//uefi_booted = !bootarg;
 	//if (!uefi_booted)
 	//	memcpy (&mi, bootarg, sizeof (struct multiboot_info));
-#endif
+#endif // CONFIG_DEVICE_TREE
 
 	initfunc_init ();
 	call_initfunc ("global");

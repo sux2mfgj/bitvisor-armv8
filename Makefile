@@ -62,4 +62,5 @@ endif
 
 $(dir)process/$(outp_p) : $(process-depends-y)
 
+include include/config/auto.conf.cmd
 export ARCH

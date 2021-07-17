@@ -190,4 +190,13 @@ static struct fdt_driver uart_fdt_driver = {
 };
 
 FDT_DRIVER (uart, &uart_fdt_driver);
-//INITFUNC ("global0", uart_init_global);
+
+#ifdef CONFIG_UART_EARLY_PUTC
+
+static void uart_early_putc_init(void)
+{
+    u64 mmio_base = CONFIG_UART_EARLY_PUTC_MMIO_BASE;
+}
+
+INITFUNC ("global0", uart_early_putc_init);
+#endif

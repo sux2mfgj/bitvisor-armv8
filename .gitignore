@@ -14,3 +14,5 @@ output.a
 *.map
 tags
 defconfig
+include/config/
+include/generated/
