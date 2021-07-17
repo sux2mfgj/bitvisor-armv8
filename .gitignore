@@ -12,3 +12,5 @@ output.a
 *.elf
 *.image
 *.map
+tags
+defconfig
