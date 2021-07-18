@@ -1,6 +1,8 @@
 #ifndef _CORE_FDT_H
 #define _CORE_FDT_H
 
+#include <core/types.h>
+
 enum fdt_prop_type {
     FDT_PROP_EMPTY,
     FDT_PROP_U32,
