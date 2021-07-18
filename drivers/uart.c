@@ -1,9 +1,7 @@
 #include <core.h>
+#include <core/fdt.h>
 #include <core/initfunc.h>
 #include <core/putchar.h>
-#include <core/fdt.h>
-
-static void *mmio_base;
 
 // data register
 #define UART_DR 0x00
@@ -52,10 +50,10 @@ static void *mmio_base;
 #define UART_LCR_H_WLEN_6 (0b01 << UART_LCR_H_WLEN_OFFSET)
 #define UART_LCR_H_WLEN_5 (0b00 << UART_LCR_H_WLEN_OFFSET)
 enum uart_wlen {
-    UART_WLEN_8,
-    UART_WLEN_7,
-    UART_WLEN_6,
-    UART_WLEN_5,
+	UART_WLEN_8,
+	UART_WLEN_7,
+	UART_WLEN_6,
+	UART_WLEN_5,
 };
 #define UART_LCR_H_SPS_OFFSET 7
 #define UART_LCR_H_SPS_MASK 0b1
@@ -70,132 +68,182 @@ enum uart_wlen {
 #define UART_IMSC_TXIM (0b1 << 5)
 #define UART_IMSC_RTIM (0b1 << 6)
 
-static u32 uart_read_32(size_t offset)
+struct uart_dev {
+	u64 mmio_base;
+};
+
+static struct uart_dev uart_dev;
+
+static u32
+uart_read_32 (struct uart_dev *dev, size_t offset)
 {
-    return *(u32*)(mmio_base + offset);
+	return *(u32 *)(dev->mmio_base + offset);
 }
 
-static void uart_write_32(size_t offset, u32 value)
+static void
+uart_write_32 (struct uart_dev *dev, size_t offset, u32 value)
 {
-    *(u32*)(mmio_base + offset) = value;
+	*(u32 *)(dev->mmio_base + offset) = value;
 }
 
-static void uart_putchar(unsigned char c)
+static void
+_uart_putchar (struct uart_dev *dev, unsigned char c)
 {
-    while(uart_read_32(UART_FR) & (1 << 5)) {}
-    uart_write_32(UART_DR, (u32)c);
+	while (uart_read_32 (dev, UART_FR) & (1 << 5)) {
+	}
+	uart_write_32 (dev, UART_DR, (u32)c);
 }
 
-char uart_getchar(void)
+static void
+uart_putchar (unsigned char c)
 {
-    while(uart_read_32(UART_FR) & (1 << 4)) {}
-    return (char)uart_read_32(UART_DR);
+	_uart_putchar (&uart_dev, c);
 }
 
-static void uart_clear_interrupt(void)
+char
+_uart_getchar (struct uart_dev *dev)
 {
-    uart_write_32(UART_ICR, 0x7ff);
+	while (uart_read_32 (dev, UART_FR) & (1 << 4)) {
+	}
+	return (char)uart_read_32 (dev, UART_DR);
 }
 
-static bool uart_irq_handler(u32 irq)
+char
+uart_getchar (void)
 {
-    char c = uart_getchar();
-    // echo back
-    uart_putchar(c);
-
-    // clear rx interrupt
-    uart_write_32(UART_ICR, (1 << 4));
-
-    return true;
+	return _uart_getchar (&uart_dev);
 }
 
-static void uart_disable(void)
+static void
+uart_clear_interrupt (struct uart_dev *dev)
 {
-    uart_write_32(UART_CR, 0);
-    //TODO write 0 to CR
+	uart_write_32 (dev, UART_ICR, 0x7ff);
 }
 
-static void uart_enable(void)
+static bool
+uart_irq_handler (u32 irq)
 {
-    uart_write_32(UART_CR, UART_CR_EN | UART_CR_TXE | UART_CR_RXE);
+	char c = _uart_getchar (&uart_dev);
+	// echo back
+	_uart_putchar (&uart_dev, c);
+
+	// clear rx interrupt
+	uart_write_32 (&uart_dev, UART_ICR, (1 << 4));
+
+	return true;
 }
 
-static void uart_disable_parity(void)
+static void
+uart_disable (struct uart_dev *dev)
 {
-    u32 value;
-
-    value = uart_read_32(UART_LCR_H);
-    value &= ~UART_LCR_H_PEN;
-    uart_write_32(UART_LCR_H, value);
+	uart_write_32 (dev, UART_CR, 0);
+	// TODO write 0 to CR
 }
 
-static void uart_set_word_length(enum uart_wlen len)
+static void
+uart_enable (struct uart_dev *dev)
 {
-    u32 value = 0 ;
-    value = uart_read_32(UART_LCR_H);
-    value &= ~UART_LCR_H_WLEN_MASK;
-    switch(len)
-    {
-        case UART_WLEN_8:
-            value |= UART_LCR_H_WLEN_8;
-            break;
-        case UART_WLEN_7:
-            value |= UART_LCR_H_WLEN_7;
-            break;
-        case UART_WLEN_6:
-            value |= UART_LCR_H_WLEN_6;
-            break;
-        case UART_WLEN_5:
-            value |= UART_LCR_H_WLEN_5;
-            break;
-    }
-    value &= ~UART_LCR_H_FEN_MASK;
-
-    uart_write_32(UART_LCR_H, value);
+	uart_write_32 (dev, UART_CR, UART_CR_EN | UART_CR_TXE | UART_CR_RXE);
 }
 
-static void init_uart(void* base)
+static void
+uart_disable_parity (struct uart_dev *dev)
 {
-    mmio_base = base;
+	u32 value;
 
-    uart_disable();
-    uart_disable_parity();
-    uart_set_word_length(UART_WLEN_8);
-    uart_clear_interrupt();
-
-    // enable rx interrupt
-    //uart_write_32(UART_IMSC, UART_IMSC_RXIM);
-
-    //irq_register_handler(33, uart_irq_handler);
-
-    uart_enable();
+	value = uart_read_32 (dev, UART_LCR_H);
+	value &= ~UART_LCR_H_PEN;
+	uart_write_32 (dev, UART_LCR_H, value);
 }
 
-static void uart_fdt_init (struct fdt_node* node)
+static void
+uart_set_word_length (struct uart_dev *dev, enum uart_wlen len)
 {
-    int res;
-    u64 tmp;
-    res = fdt_get_reg_value(node, 0, FDT_REG_ADDRESS, &tmp);
-    if (res) {
-        panic("invalid reg value of device tree");
-    }
+	u32 value = 0;
+	value = uart_read_32 (dev, UART_LCR_H);
+	value &= ~UART_LCR_H_WLEN_MASK;
+	switch (len) {
+	case UART_WLEN_8:
+		value |= UART_LCR_H_WLEN_8;
+		break;
+	case UART_WLEN_7:
+		value |= UART_LCR_H_WLEN_7;
+		break;
+	case UART_WLEN_6:
+		value |= UART_LCR_H_WLEN_6;
+		break;
+	case UART_WLEN_5:
+		value |= UART_LCR_H_WLEN_5;
+		break;
+	}
+	value &= ~UART_LCR_H_FEN_MASK;
 
-    init_uart((void* )tmp);
-    putchar_set_func (uart_putchar, NULL);
+	uart_write_32 (dev, UART_LCR_H, value);
+}
+
+static void
+init_uart (void *base)
+{
+	struct uart_dev *dev = &uart_dev;
+	dev->mmio_base = (u64)base;
+
+	uart_disable (dev);
+	uart_disable_parity (dev);
+	uart_set_word_length (dev, UART_WLEN_8);
+	uart_clear_interrupt (dev);
+
+	// enable rx interrupt
+	// uart_write_32(UART_IMSC, UART_IMSC_RXIM);
+
+	// irq_register_handler(33, uart_irq_handler);
+
+	uart_enable (dev);
+}
+
+static void
+uart_fdt_init (struct fdt_node *node)
+{
+	int res;
+	u64 tmp;
+	res = fdt_get_reg_value (node, 0, FDT_REG_ADDRESS, &tmp);
+	if (res) {
+		panic ("invalid reg value of device tree");
+	}
+
+	init_uart ((void *)tmp);
+	putchar_set_func (uart_putchar, NULL);
 }
 
 static struct fdt_driver uart_fdt_driver = {
-    .compatible = "arm,pl011",
-    .init = uart_fdt_init,
+	.compatible = "arm,pl011",
+	.init = uart_fdt_init,
 };
 
 FDT_DRIVER (uart, &uart_fdt_driver);
 
 #ifdef CONFIG_UART_EARLY_PUTC
 
-static void uart_early_putc_init(void)
+static struct uart_dev uart_early_dev;
+
+static void
+uart_early_putc (unsigned char c)
 {
-    u64 mmio_base = CONFIG_UART_EARLY_PUTC_MMIO_BASE;
+	_uart_putchar (&uart_early_dev, c);
+}
+
+static void
+uart_early_putc_init (void)
+{
+	struct uart_dev *dev = &uart_early_dev;
+
+	dev->mmio_base = CONFIG_UART_EARLY_PUTC_MMIO_BASE;
+
+	uart_disable (dev);
+	uart_disable_parity (dev);
+	uart_set_word_length (dev, UART_WLEN_8);
+	uart_enable (dev);
+
+	putchar_set_func (uart_early_putc, NULL);
 }
 
 INITFUNC ("global0", uart_early_putc_init);
