@@ -545,8 +545,6 @@ vmm_main (void* bootarg)
 	initfunc_init ();
 	call_initfunc ("global");
 	load_drivers ();
-	while (1)
-		;
 	start_all_processors (bsp_proc, ap_proc);
 }
 
