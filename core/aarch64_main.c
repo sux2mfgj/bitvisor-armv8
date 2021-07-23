@@ -30,6 +30,7 @@
 #include <core.h>
 
 #include "ap.h"
+#include "asm.h"
 //#include "assert.h"
 //#include "callrealmode.h"
 //#include "calluefi.h"

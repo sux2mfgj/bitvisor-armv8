@@ -66,4 +66,15 @@ static inline void asm_set_stack_and_jump(ulong sp, void *jmpto)
         ::"r"(sp), "r"(jmpto));
 }
 
+static inline ulong
+asm_lock_ulong_swap (ulong *mem, ulong newval)
+{
+	ulong oldval;
+
+    asm volatile (
+            "cas %0, %1, %2"
+            : "=r"(oldval) : "r"(newval), "r"(mem));
+    return oldval;
+}
+
 #endif
