@@ -2,7 +2,7 @@
 #ifndef __ASM
 #define __ASM
 
-#include "types.h"
+#include <core/types.h>
 
 static inline void write_tcr_el2(u64 value)
 {
@@ -43,11 +43,11 @@ static inline void write_vbar_el2(u64 value)
 
 #define DEF_SYS_REG_READ(name) \
     static inline u64 read_##name(void) \
-    { u64 value; asm volatile ("mrs %[x], name" : [x]"=r"(value)); return value; }
+    { u64 value; asm volatile ("mrs %[x], "#name : [x]"=r"(value)); return value; }
 
 #define DEF_SYS_REG_WRITE(name) \
     static inline void write_##name(u64 value) \
-    { asm volatile ("msr name, %[x]" ::[x]"r"(value));}
+    { asm volatile ("msr "#name", %[x]" ::[x]"r"(value));}
 
 DEF_SYS_REG_READ(hcr_el2)
 DEF_SYS_REG_WRITE(hcr_el2)
