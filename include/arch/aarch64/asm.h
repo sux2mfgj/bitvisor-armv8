@@ -84,10 +84,12 @@ asm_lock_ulong_swap (ulong *mem, ulong newval)
 {
 	ulong oldval;
 
-	asm volatile("cas %0, %2, %1"
-		     : "=r"(oldval), "+Q"(*mem)
-		     : "r"(newval));
-	return oldval;
+    //TODO: fix to use cas inst before multiprocessing. currently it causes an exception.
+	//asm volatile("cas %0, %2, %1"
+	//	     : "=r"(oldval), "+Q"(*mem)
+	//	     : "r"(newval));
+	//return oldval;
+	return 1;
 }
 
 #endif
