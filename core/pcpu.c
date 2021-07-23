@@ -27,24 +27,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "pcpu.h"
+//#include "pcpu.h"
+#include <core/pcpu.h>
 #include "spinlock.h"
 
 struct pcpu pcpu_default = {
-	.suspend_lock = SPINLOCK_INITIALIZER,
+	//.suspend_lock = SPINLOCK_INITIALIZER,
 	.pass_vm_created = false,
 };
 
-#define DEFINE_GS_OFFSET(name, offset) \
-	asm (".globl " #name "; " #name " = " #offset)
-
-DEFINE_GS_OFFSET (gs_inthandling, 0);
-DEFINE_GS_OFFSET (gs_currentcpu, 8);
-DEFINE_GS_OFFSET (gs_syscallstack, 16);
-DEFINE_GS_OFFSET (gs_current, 24);
-DEFINE_GS_OFFSET (gs_nmi_count, 32);
-DEFINE_GS_OFFSET (gs_init_count, 40);
-DEFINE_GS_OFFSET (gs_nmi_critical, 48);
+//#define DEFINE_GS_OFFSET(name, offset) \
+//	asm (".globl " #name "; " #name " = " #offset)
+//
+//DEFINE_GS_OFFSET (gs_inthandling, 0);
+//DEFINE_GS_OFFSET (gs_currentcpu, 8);
+//DEFINE_GS_OFFSET (gs_syscallstack, 16);
+//DEFINE_GS_OFFSET (gs_current, 24);
+//DEFINE_GS_OFFSET (gs_nmi_count, 32);
+//DEFINE_GS_OFFSET (gs_init_count, 40);
+//DEFINE_GS_OFFSET (gs_nmi_critical, 48);
 
 static struct pcpu *pcpu_list_head;
 static spinlock_t pcpu_list_lock;
