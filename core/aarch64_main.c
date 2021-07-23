@@ -390,9 +390,9 @@ virtualization_init_pcpu (void)
 //	}
 //}
 //
-// static void
-// create_pass_vm (void)
-//{
+ static void
+ create_pass_vm (void)
+{
 //	bool bsp = false;
 //	static struct vcpu *vcpu0;
 //
@@ -430,8 +430,8 @@ virtualization_init_pcpu (void)
 //			asm_cli_and_hlt ();
 //#endif
 //	current->vmctl.start_vm ();
-//	panic ("VM stopped.");
-//}
+	panic ("VM stopped.");
+}
 //
 // static void
 // wait_for_create_pass_vm (void)
@@ -549,7 +549,7 @@ vmm_main (void* bootarg)
 }
 
 INITFUNC ("pcpu2", virtualization_init_pcpu);
-// INITFUNC ("pcpu5", create_pass_vm);
+INITFUNC ("pcpu5", create_pass_vm);
 // INITFUNC ("dbsp5", wait_for_create_pass_vm);
 // INITFUNC ("bsp0", debug_on_shift_key);
 INITFUNC ("global1", print_boot_msg);
