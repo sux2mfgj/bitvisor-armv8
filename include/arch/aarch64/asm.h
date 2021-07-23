@@ -86,7 +86,7 @@ asm_lock_ulong_swap (ulong *mem, ulong newval)
 
 	asm volatile("cas %0, %2, %1"
 		     : "=r"(oldval), "+Q"(*mem)
-		     : "r"(newval), "+Q"(*mem));
+		     : "r"(newval));
 	return oldval;
 }
 
