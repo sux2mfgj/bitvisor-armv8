@@ -719,8 +719,10 @@ asm_sti (void)
 	asm volatile ("sti");
 }
 
+//static inline void
+//asm_wrrsp_and_jmp (ulong rsp, void *jmpto)
 static inline void
-asm_wrrsp_and_jmp (ulong rsp, void *jmpto)
+asm_set_stack_and_jump(ulong sp, void *jmpto)
 {
 	asm volatile (
 		"xor %%ebp,%%ebp; "
@@ -730,7 +732,7 @@ asm_wrrsp_and_jmp (ulong rsp, void *jmpto)
 		"mov %0,%%esp; jmp *%1"
 #endif
 		:
-		: "g" (rsp)
+		: "g" (sp)
 		, "r" (jmpto));
 }
 

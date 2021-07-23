@@ -27,24 +27,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "ap.h"
+//#include "ap.h"
 #include "asm.h"
 #include "assert.h"
-#include "constants.h"
-#include "entry.h"
-#include "int.h"
+//#include "constants.h"
+//#include "entry.h"
+//#include "int.h"
 #include "linkage.h"
-#include "localapic.h"
+//#include "localapic.h"
 #include "mm.h"
 #include "panic.h"
 #include "pcpu.h"
 #include "printf.h"
-#include "seg.h"
-#include "sleep.h"
-#include "spinlock.h"
-#include "string.h"
+//#include "seg.h"
+//#include "sleep.h"
+//#include "spinlock.h"
+//#include "string.h"
 #include "thread.h"
-#include "uefi.h"
+//#include "uefi.h"
 
 #define APINIT_SIZE		(cpuinit_end - cpuinit_start)
 #define APINIT_POINTER(n)	((void *)(apinit + ((u8 *)&n - cpuinit_start)))
@@ -195,260 +195,260 @@ struct icr {
 	unsigned int destination : 32;
 };
 
-static void ap_start (void);
+//static void ap_start (void);
 
 volatile int num_of_processors; /* number of application processors */
 static void (*initproc_bsp) (void), (*initproc_ap) (void);
-static spinlock_t ap_lock;
-static void *newstack_tmp;
-static spinlock_t sync_lock;
+//static spinlock_t ap_lock;
+//static void *newstack_tmp;
+//static spinlock_t sync_lock;
 static u32 sync_id;
 static volatile u32 sync_count;
-static spinlock_t *apinitlock;
-static u32 apinit_addr;
-static bool ap_started;
-static struct local_apic_registers *lar;
-static const u64 apic_base = 0xFEE00000;
+//static spinlock_t *apinitlock;
+//static u32 apinit_addr;
+//static bool ap_started;
+//static struct local_apic_registers *lar;
+//static const u64 apic_base = 0xFEE00000;
 
-/* this function is called after starting AP and switching a stack */
-/* unlock the spinlock because the stack is switched */
-static asmlinkage void
-apinitproc1 (void)
-{
-	void (*proc) (void);
-	int n;
-	void *newstack;
-
-	newstack = newstack_tmp;
-	spinlock_unlock (apinitlock);
-	spinlock_lock (&ap_lock);
-	num_of_processors++;
-	n = num_of_processors;
-	proc = initproc_ap;
-	spinlock_unlock (&ap_lock);
-	segment_init_ap (n);
-	currentcpu->stackaddr = newstack;
-	int_init_ap ();
-	/* Load segments and interrupts as soon as possible, before
-	 * using printf(), because printf() might use complex network
-	 * functions on UEFI systems. */
-	printf ("Processor %d (AP)\n", n);
-	proc ();
-}
-
+///* this function is called after starting AP and switching a stack */
+///* unlock the spinlock because the stack is switched */
+//static asmlinkage void
+//apinitproc1 (void)
+//{
+//	void (*proc) (void);
+//	int n;
+//	void *newstack;
+//
+//	newstack = newstack_tmp;
+//	spinlock_unlock (apinitlock);
+//	spinlock_lock (&ap_lock);
+//	num_of_processors++;
+//	n = num_of_processors;
+//	proc = initproc_ap;
+//	spinlock_unlock (&ap_lock);
+//	segment_init_ap (n);
+//	currentcpu->stackaddr = newstack;
+//	int_init_ap ();
+//	/* Load segments and interrupts as soon as possible, before
+//	 * using printf(), because printf() might use complex network
+//	 * functions on UEFI systems. */
+//	printf ("Processor %d (AP)\n", n);
+//	proc ();
+//}
+//
 static asmlinkage void
 bspinitproc1 (void)
 {
 	printf ("Processor 0 (BSP)\n");
-	spinlock_init (&sync_lock);
+	//spinlock_init (&sync_lock);
 	sync_id = 0;
 	sync_count = 0;
 	num_of_processors = 0;
-	spinlock_init (&ap_lock);
+	//spinlock_init (&ap_lock);
 
-	if (!uefi_booted) {
-		apinit_addr = 0xF000;
-		ap_start ();
-	} else {
-		apinit_addr = alloc_realmodemem (APINIT_SIZE + 15);
-		ASSERT (apinit_addr >= 0x1000);
-		while ((apinit_addr & 0xF) != (APINIT_OFFSET & 0xF))
-			apinit_addr++;
-		ASSERT (apinit_addr > APINIT_OFFSET);
-		localapic_delayed_ap_start (ap_start);
-	}
+	//if (!uefi_booted) {
+	//	apinit_addr = 0xF000;
+	//	ap_start ();
+	//} else {
+	//	apinit_addr = alloc_realmodemem (APINIT_SIZE + 15);
+	//	ASSERT (apinit_addr >= 0x1000);
+	//	while ((apinit_addr & 0xF) != (APINIT_OFFSET & 0xF))
+	//		apinit_addr++;
+	//	ASSERT (apinit_addr > APINIT_OFFSET);
+	//	localapic_delayed_ap_start (ap_start);
+	//}
 	initproc_bsp ();
 	panic ("bspinitproc1");
 }
 
-/* this function is called on AP by entry.s */
-/* other APs are waiting for spinlock */
-/* the stack is cpuinit_tmpstack defined in entry.s */
-/* this function allocates a stack and calls apinitproc1 with the new stack */
-asmlinkage void
-apinitproc0 (void)
-{
-	newstack_tmp = alloc (VMM_STACKSIZE);
-	asm_wrrsp_and_jmp ((ulong)newstack_tmp + VMM_STACKSIZE, apinitproc1);
-}
-
-static bool
-apic_supported (void)
-{
-	u32 a, b, c, d;
-
-	asm_cpuid (1, 0, &a, &b, &c, &d);
-	return !!(d & CPUID_1_EDX_APIC_BIT);
-}
-
-bool
-apic_available (void)
-{
-	u64 tmp;
-
-	if (!apic_supported ())
-		return false;
-	asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &tmp);
-	if (!(tmp & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
-		return false;
-	return true;
-}
-
-static bool
-is_x2apic_supported (void)
-{
-	u32 a, b, c, d;
-
-	asm_cpuid (CPUID_1, 0, &a, &b, &c, &d);
-	if (c & CPUID_1_ECX_X2APIC_BIT)
-		return true;
-	return false;
-}
-
-static bool
-is_x2apic_enabled (void)
-{
-	u64 apic_base_msr;
-
-	asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &apic_base_msr);
-	if (!(apic_base_msr & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
-		return false;
-	if (apic_base_msr & MSR_IA32_APIC_BASE_MSR_ENABLE_X2APIC_BIT)
-		return true;
-	return false;
-}
-
-static void
-write_icr (volatile u32 *apic_icr, u32 value)
-{
-	if (is_x2apic_supported () && is_x2apic_enabled ())
-		asm_wrmsr64 (MSR_IA32_X2APIC_ICR, value);
-	else
-		*apic_icr = value;
-}
-
-static u32
-read_svr (volatile u32 *apic_svr)
-{
-	u32 value, dummy;
-
-	if (is_x2apic_supported () && is_x2apic_enabled ())
-		asm_rdmsr32 (MSR_IA32_X2APIC_SIVR, &value, &dummy);
-	else
-		value = *apic_svr;
-	return value;
-}
-
-static void
-write_svr (volatile u32 *apic_svr, u32 value)
-{
-	if (is_x2apic_supported () && is_x2apic_enabled ())
-		asm_wrmsr64 (MSR_IA32_X2APIC_SIVR, value);
-	else
-		*apic_svr = value;
-}
-
-static void
-apic_wait_for_idle (volatile u32 *apic_icr)
-{
-	if (is_x2apic_supported () && is_x2apic_enabled ())
-		return;
-	while ((*apic_icr & ICR_STATUS_BIT) != ICR_STATUS_IDLE);
-}
-
-static void
-apic_send_init (volatile u32 *apic_icr)
-{
-	apic_wait_for_idle (apic_icr);
-	write_icr (apic_icr, ICR_DEST_OTHER | ICR_TRIGGER_EDGE |
-		   ICR_LEVEL_ASSERT | ICR_MODE_INIT);
-}
-
-static void
-apic_send_startup_ipi (volatile u32 *apic_icr, u32 addr)
-{
-	apic_wait_for_idle (apic_icr);
-	write_icr (apic_icr, ICR_DEST_OTHER | ICR_TRIGGER_EDGE |
-		   ICR_LEVEL_ASSERT | ICR_MODE_STARTUP | addr);
-}
-
-static void
-apic_send_nmi (volatile u32 *apic_icr)
-{
-	apic_wait_for_idle (apic_icr);
-	write_icr (apic_icr, ICR_DEST_OTHER | ICR_TRIGGER_EDGE |
-		   ICR_LEVEL_ASSERT | ICR_MODE_NMI);
-	apic_wait_for_idle (apic_icr);
-}
-
-void
-ap_start_addr (u8 addr, bool (*loopcond) (void *data), void *data)
-{
-	volatile u32 *apic_icr;
-
-	if (!apic_available ())
-		return;
-	ASSERT (lar);
-	apic_icr = &lar->interrupt_command_0;
-	apic_send_init (apic_icr);
-	usleep (10000);
-	while (loopcond (data)) {
-		apic_send_startup_ipi (apic_icr, addr);
-		usleep (200000);
-	}
-}
-
-static bool
-ap_start_loopcond (void *data)
-{
-	int *p;
-
-	p = data;
-	return (*p)++ < 3;
-}
-
-static void
-ap_start (void)
-{
-	volatile u32 *num;
-	u8 *apinit;
-	u32 tmp;
-	int i;
-	u8 buf[5];
-	u8 *p;
-	u32 apinit_segment;
-
-	apinit_segment = (apinit_addr - APINIT_OFFSET) >> 4;
-	/* Put a "ljmpw" instruction to the physical address 0 */
-	p = mapmem_hphys (0, 5, MAPMEM_WRITE);
-	memcpy (buf, p, 5);
-	p[0] = 0xEA;		/* ljmpw */
-	p[1] = APINIT_OFFSET & 0xFF;
-	p[2] = APINIT_OFFSET >> 8;
-	p[3] = apinit_segment & 0xFF;
-	p[4] = apinit_segment >> 8;
-	apinit = mapmem_hphys (apinit_addr, APINIT_SIZE, MAPMEM_WRITE);
-	ASSERT (apinit);
-	memcpy (apinit, cpuinit_start, APINIT_SIZE);
-	num = (volatile u32 *)APINIT_POINTER (apinit_procs);
-	apinitlock = (spinlock_t *)APINIT_POINTER (apinit_lock);
-	*num = 0;
-	spinlock_init (apinitlock);
-	i = 0;
-	ap_start_addr (0, ap_start_loopcond, &i);
-	for (;;) {
-		spinlock_lock (&ap_lock);
-		tmp = num_of_processors;
-		spinlock_unlock (&ap_lock);
-		if (*num == tmp)
-			break;
-		usleep (1000000);
-	}
-	unmapmem ((void *)apinit, APINIT_SIZE);
-	memcpy (p, buf, 5);
-	unmapmem (p, 5);
-	ap_started = true;
-}
+///* this function is called on AP by entry.s */
+///* other APs are waiting for spinlock */
+///* the stack is cpuinit_tmpstack defined in entry.s */
+///* this function allocates a stack and calls apinitproc1 with the new stack */
+//asmlinkage void
+//apinitproc0 (void)
+//{
+//	newstack_tmp = alloc (VMM_STACKSIZE);
+//	asm_wrrsp_and_jmp ((ulong)newstack_tmp + VMM_STACKSIZE, apinitproc1);
+//}
+//
+//static bool
+//apic_supported (void)
+//{
+//	u32 a, b, c, d;
+//
+//	asm_cpuid (1, 0, &a, &b, &c, &d);
+//	return !!(d & CPUID_1_EDX_APIC_BIT);
+//}
+//
+//bool
+//apic_available (void)
+//{
+//	u64 tmp;
+//
+//	if (!apic_supported ())
+//		return false;
+//	asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &tmp);
+//	if (!(tmp & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
+//		return false;
+//	return true;
+//}
+//
+//static bool
+//is_x2apic_supported (void)
+//{
+//	u32 a, b, c, d;
+//
+//	asm_cpuid (CPUID_1, 0, &a, &b, &c, &d);
+//	if (c & CPUID_1_ECX_X2APIC_BIT)
+//		return true;
+//	return false;
+//}
+//
+//static bool
+//is_x2apic_enabled (void)
+//{
+//	u64 apic_base_msr;
+//
+//	asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &apic_base_msr);
+//	if (!(apic_base_msr & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
+//		return false;
+//	if (apic_base_msr & MSR_IA32_APIC_BASE_MSR_ENABLE_X2APIC_BIT)
+//		return true;
+//	return false;
+//}
+//
+//static void
+//write_icr (volatile u32 *apic_icr, u32 value)
+//{
+//	if (is_x2apic_supported () && is_x2apic_enabled ())
+//		asm_wrmsr64 (MSR_IA32_X2APIC_ICR, value);
+//	else
+//		*apic_icr = value;
+//}
+//
+//static u32
+//read_svr (volatile u32 *apic_svr)
+//{
+//	u32 value, dummy;
+//
+//	if (is_x2apic_supported () && is_x2apic_enabled ())
+//		asm_rdmsr32 (MSR_IA32_X2APIC_SIVR, &value, &dummy);
+//	else
+//		value = *apic_svr;
+//	return value;
+//}
+//
+//static void
+//write_svr (volatile u32 *apic_svr, u32 value)
+//{
+//	if (is_x2apic_supported () && is_x2apic_enabled ())
+//		asm_wrmsr64 (MSR_IA32_X2APIC_SIVR, value);
+//	else
+//		*apic_svr = value;
+//}
+//
+//static void
+//apic_wait_for_idle (volatile u32 *apic_icr)
+//{
+//	if (is_x2apic_supported () && is_x2apic_enabled ())
+//		return;
+//	while ((*apic_icr & ICR_STATUS_BIT) != ICR_STATUS_IDLE);
+//}
+//
+//static void
+//apic_send_init (volatile u32 *apic_icr)
+//{
+//	apic_wait_for_idle (apic_icr);
+//	write_icr (apic_icr, ICR_DEST_OTHER | ICR_TRIGGER_EDGE |
+//		   ICR_LEVEL_ASSERT | ICR_MODE_INIT);
+//}
+//
+//static void
+//apic_send_startup_ipi (volatile u32 *apic_icr, u32 addr)
+//{
+//	apic_wait_for_idle (apic_icr);
+//	write_icr (apic_icr, ICR_DEST_OTHER | ICR_TRIGGER_EDGE |
+//		   ICR_LEVEL_ASSERT | ICR_MODE_STARTUP | addr);
+//}
+//
+//static void
+//apic_send_nmi (volatile u32 *apic_icr)
+//{
+//	apic_wait_for_idle (apic_icr);
+//	write_icr (apic_icr, ICR_DEST_OTHER | ICR_TRIGGER_EDGE |
+//		   ICR_LEVEL_ASSERT | ICR_MODE_NMI);
+//	apic_wait_for_idle (apic_icr);
+//}
+//
+//void
+//ap_start_addr (u8 addr, bool (*loopcond) (void *data), void *data)
+//{
+//	volatile u32 *apic_icr;
+//
+//	if (!apic_available ())
+//		return;
+//	ASSERT (lar);
+//	apic_icr = &lar->interrupt_command_0;
+//	apic_send_init (apic_icr);
+//	usleep (10000);
+//	while (loopcond (data)) {
+//		apic_send_startup_ipi (apic_icr, addr);
+//		usleep (200000);
+//	}
+//}
+//
+//static bool
+//ap_start_loopcond (void *data)
+//{
+//	int *p;
+//
+//	p = data;
+//	return (*p)++ < 3;
+//}
+//
+//static void
+//ap_start (void)
+//{
+//	volatile u32 *num;
+//	u8 *apinit;
+//	u32 tmp;
+//	int i;
+//	u8 buf[5];
+//	u8 *p;
+//	u32 apinit_segment;
+//
+//	apinit_segment = (apinit_addr - APINIT_OFFSET) >> 4;
+//	/* Put a "ljmpw" instruction to the physical address 0 */
+//	p = mapmem_hphys (0, 5, MAPMEM_WRITE);
+//	memcpy (buf, p, 5);
+//	p[0] = 0xEA;		/* ljmpw */
+//	p[1] = APINIT_OFFSET & 0xFF;
+//	p[2] = APINIT_OFFSET >> 8;
+//	p[3] = apinit_segment & 0xFF;
+//	p[4] = apinit_segment >> 8;
+//	apinit = mapmem_hphys (apinit_addr, APINIT_SIZE, MAPMEM_WRITE);
+//	ASSERT (apinit);
+//	memcpy (apinit, cpuinit_start, APINIT_SIZE);
+//	num = (volatile u32 *)APINIT_POINTER (apinit_procs);
+//	apinitlock = (spinlock_t *)APINIT_POINTER (apinit_lock);
+//	*num = 0;
+//	spinlock_init (apinitlock);
+//	i = 0;
+//	ap_start_addr (0, ap_start_loopcond, &i);
+//	for (;;) {
+//		spinlock_lock (&ap_lock);
+//		tmp = num_of_processors;
+//		spinlock_unlock (&ap_lock);
+//		if (*num == tmp)
+//			break;
+//		usleep (1000000);
+//	}
+//	unmapmem ((void *)apinit, APINIT_SIZE);
+//	memcpy (p, buf, 5);
+//	unmapmem (p, 5);
+//	ap_started = true;
+//}
 
 static void
 bsp_continue (asmlinkage void (*initproc_arg) (void))
@@ -457,283 +457,284 @@ bsp_continue (asmlinkage void (*initproc_arg) (void))
 
 	newstack = alloc (VMM_STACKSIZE);
 	currentcpu->stackaddr = newstack;
-	asm_wrrsp_and_jmp ((ulong)newstack + VMM_STACKSIZE, initproc_arg);
+	//asm_wrrsp_and_jmp ((ulong)newstack + VMM_STACKSIZE, initproc_arg);
+    asm_set_stack_and_jump ((ulong)newstack + VMM_STACKSIZE, initproc_arg);
 }
 
-void
-panic_wakeup_all (void)
-{
-	u64 tmp;
-	volatile u32 *apic_icr;
-
-	if (!apic_available ())
-		return;
-	if (!ap_started)
-		return;
-	asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &tmp);
-	if (!(tmp & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
-		return;
-	tmp &= ~MSR_IA32_APIC_BASE_MSR_APIC_BASE_MASK;
-	tmp |= apic_base;
-	asm_wrmsr64 (MSR_IA32_APIC_BASE_MSR, tmp);
-
-	if (!lar)
-		return;
-	apic_icr = &lar->interrupt_command_0;
-	apic_send_nmi (apic_icr);
-}
-
-void
-disable_apic (void)
-{
-	u64 tmp;
-	volatile u32 *apic_svr;
-
-	if (!apic_available ())
-		return;
-	asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &tmp);
-	if (!(tmp & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
-		return;
-	tmp &= ~MSR_IA32_APIC_BASE_MSR_APIC_BASE_MASK;
-	tmp |= apic_base;
-	asm_wrmsr64 (MSR_IA32_APIC_BASE_MSR, tmp);
-
-	if (!lar)
-		return;
-	apic_svr = &lar->spurious_interrupt_vector;
-	write_svr (apic_svr, read_svr (apic_svr) & ~SVR_APIC_ENABLED);
-}
-
-void
-sync_all_processors (void)
-{
-	u32 id = 0;
-	bool ret = false;
-
-	spinlock_lock (&sync_lock);
-	asm_lock_cmpxchgl (&sync_id, &id, id);
-	sync_count++;
-	if (sync_count == num_of_processors + 1) {
-		sync_count = 0;
-		asm_lock_incl (&sync_id);
-		ret = true;
-	}
-	spinlock_unlock (&sync_lock);
-	while (!ret) {
-		ret = asm_lock_cmpxchgl (&sync_id, &id, id);
-		asm_pause ();
-	}
-}
+//void
+//panic_wakeup_all (void)
+//{
+//	u64 tmp;
+//	volatile u32 *apic_icr;
+//
+//	if (!apic_available ())
+//		return;
+//	if (!ap_started)
+//		return;
+//	asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &tmp);
+//	if (!(tmp & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
+//		return;
+//	tmp &= ~MSR_IA32_APIC_BASE_MSR_APIC_BASE_MASK;
+//	tmp |= apic_base;
+//	asm_wrmsr64 (MSR_IA32_APIC_BASE_MSR, tmp);
+//
+//	if (!lar)
+//		return;
+//	apic_icr = &lar->interrupt_command_0;
+//	apic_send_nmi (apic_icr);
+//}
+//
+//void
+//disable_apic (void)
+//{
+//	u64 tmp;
+//	volatile u32 *apic_svr;
+//
+//	if (!apic_available ())
+//		return;
+//	asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &tmp);
+//	if (!(tmp & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
+//		return;
+//	tmp &= ~MSR_IA32_APIC_BASE_MSR_APIC_BASE_MASK;
+//	tmp |= apic_base;
+//	asm_wrmsr64 (MSR_IA32_APIC_BASE_MSR, tmp);
+//
+//	if (!lar)
+//		return;
+//	apic_svr = &lar->spurious_interrupt_vector;
+//	write_svr (apic_svr, read_svr (apic_svr) & ~SVR_APIC_ENABLED);
+//}
+//
+//void
+//sync_all_processors (void)
+//{
+//	u32 id = 0;
+//	bool ret = false;
+//
+//	spinlock_lock (&sync_lock);
+//	asm_lock_cmpxchgl (&sync_id, &id, id);
+//	sync_count++;
+//	if (sync_count == num_of_processors + 1) {
+//		sync_count = 0;
+//		asm_lock_incl (&sync_id);
+//		ret = true;
+//	}
+//	spinlock_unlock (&sync_lock);
+//	while (!ret) {
+//		ret = asm_lock_cmpxchgl (&sync_id, &id, id);
+//		asm_pause ();
+//	}
+//}
 
 void
 start_all_processors (void (*bsp_initproc) (void), void (*ap_initproc) (void))
 {
-	lar = mapmem_hphys (apic_base, sizeof *lar, MAPMEM_WRITE | MAPMEM_PWT |
-			    MAPMEM_PCD);
+	//lar = mapmem_hphys (apic_base, sizeof *lar, MAPMEM_WRITE | MAPMEM_PWT |
+	//		    MAPMEM_PCD);
 	initproc_bsp = bsp_initproc;
 	initproc_ap = ap_initproc;
 	bsp_continue (bspinitproc1);
 }
 
-static enum apic_mode
-get_apic_mode (void)
-{
-	enum apic_mode ret = currentcpu->apic;
-	u64 tmp;
-
-	if (ret == APIC_MODE_NULL) {
-		if (!apic_supported ())
-			return APIC_MODE_NULL;
-		asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &tmp);
-		if (!(tmp & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
-			ret = APIC_MODE_DISABLED;
-		else if (is_x2apic_supported () && is_x2apic_enabled ())
-			ret = APIC_MODE_X2APIC;
-		else
-			ret = APIC_MODE_XAPIC;
-		currentcpu->apic = ret;
-	}
-	return ret;
-}
-
-void
-self_ipi (int intnum)
-{
-	enum apic_mode mode;
-	volatile u32 *apic_icr;
-
-	if (intnum < 0x10 || intnum > 0xFF)
-		return;
-	mode = get_apic_mode ();
-	if (mode == APIC_MODE_X2APIC) {
-		asm_wrmsr32 (MSR_IA32_X2APIC_SELF_IPI, intnum, 0);
-		return;
-	}
-	if (mode != APIC_MODE_XAPIC)
-		return;
-	if (!lar)
-		return;
-	apic_icr = &lar->interrupt_command_0;
-	while ((*apic_icr & ICR_STATUS_BIT) != ICR_STATUS_IDLE);
-	*apic_icr = ICR_DEST_SELF | ICR_TRIGGER_EDGE | ICR_LEVEL_ASSERT |
-		ICR_MODE_FIXED | intnum;
-}
-
-void
-send_ipi (u64 icr)
-{
-	enum apic_mode mode;
-	volatile u32 *apic_icr;
-	volatile u32 *apic_icr_high;
-
-	if (!~icr)		/* Special invalid value used by
-				 * msi_to_icr(). */
-		return;
-	if ((icr & ICR_MODE_MASK) == ICR_MODE_LOWEST_PRIORITY)
-		/* Lowest Priority should be avoided in xAPIC mode or
-		 * is reserved in x2APIC mode. */
-		icr = (icr & ~ICR_MODE_MASK) | ICR_MODE_FIXED;
-	mode = get_apic_mode ();
-	if (mode == APIC_MODE_X2APIC) {
-		asm_wrmsr64 (MSR_IA32_X2APIC_ICR, icr);
-		return;
-	}
-	if (mode != APIC_MODE_XAPIC)
-		return;
-	if (!lar)
-		return;
-	apic_icr = &lar->interrupt_command_0;
-	apic_icr_high = &lar->interrupt_command_1;
-	while ((*apic_icr & ICR_STATUS_BIT) != ICR_STATUS_IDLE);
-	*apic_icr_high = icr >> 32;
-	*apic_icr = icr;
-}
-
-void
-eoi (void)
-{
-	enum apic_mode mode;
-	volatile u32 *apic_eoi;
-
-	mode = get_apic_mode ();
-	if (mode == APIC_MODE_X2APIC) {
-		asm_wrmsr32 (MSR_IA32_X2APIC_EOI, 0, 0);
-		return;
-	}
-	if (mode != APIC_MODE_XAPIC)
-		return;
-	if (!lar)
-		return;
-	apic_eoi = &lar->eoi;
-	*apic_eoi = 0;
-}
-
-u64
-msi_to_icr (u32 maddr, u32 mupper, u16 mdata)
-{
-	union {
-		u64 v;
-		struct icr b;
-	} ret;
-
-	ret.v = ~0ULL;
-	if ((maddr & 0xFFF00000) == 0xFEE00000 && !mupper) {
-		ret.v = 0;
-		ret.b.vector = mdata;
-		ret.b.delivery_mode = mdata >> 8;
-		ret.b.destination_mode = maddr >> 2;
-		ret.b.level = mdata >> 14;
-		ret.b.trigger_mode = mdata >> 15;
-		ret.b.destination_shorthand = 0; /* No shorthand */
-		ret.b.destination = maddr >> 12 << 24;
-		if (get_apic_mode () == APIC_MODE_X2APIC)
-			ret.b.destination >>= 24;
-	}
-	return ret.v;
-}
-
-bool
-is_icr_destination_me (u64 icr)
-{
-	union {
-		u64 v;
-		struct icr b;
-	} i;
-	u32 mda;
-	enum apic_mode mode;
-	u32 id;
-	u32 tmp;
-	u32 *apic_local_apic_id;
-	u32 *apic_ldr;
-
-	if (!~icr)		/* Special invalid value used by
-				 * msi_to_icr(). */
-		return false;
-	i.v = icr;
-	mda = i.b.destination;
-	if (i.b.destination_shorthand)
-		/* 0: No Shorthand
-		   1: Self
-		   2: All Including Self
-		   3: All Excluding Self */
-		return i.b.destination_shorthand != 3;
-	mode = get_apic_mode ();
-	if (mode == APIC_MODE_X2APIC) {
-		/* x2APIC */
-		if (!i.b.destination_mode) { /* Physical */
-			asm_rdmsr32 (MSR_IA32_X2APIC_APICID, &id, &tmp);
-			return mda == id;
-		} else {	/* Logical */
-			asm_rdmsr32 (MSR_IA32_X2APIC_LDR, &id, &tmp);
-			return (mda & id & 0xFFFF) &&
-				(mda & 0xFFFF0000) == (id & 0xFFFF0000);
-		}
-	}
-	if (mode != APIC_MODE_XAPIC)
-		return false;
-	/* xAPIC */
-	if (!lar)
-		return false;
-	if (!i.b.destination_mode) { /* Physical */
-		apic_local_apic_id = &lar->local_apic_id;
-		id = *apic_local_apic_id;
-		return (mda & 0xFF000000) == (id & 0xFF000000);
-	} else {		/* Logical */
-		/* Flat model is expected. */
-		apic_ldr = &lar->logical_destination;
-		id = *apic_ldr;
-		return !!(mda & id & 0xFF000000);
-	}
-}
-
-u64
-dmar_irte_to_icr (u64 entry_low)
-{
-	union {
-		u64 v;
-		struct icr b;
-	} ret;
-
-	ret.v = ~0ULL;
-	if (entry_low & 1) {	/* Present */
-		ret.v = 0;
-		ret.b.vector = entry_low >> 16; /* V */
-		ret.b.delivery_mode = entry_low >> 5; /* DLM */
-		ret.b.destination_mode = entry_low >> 2; /* DM */
-		ret.b.level = 1;
-		ret.b.trigger_mode = entry_low >> 4; /* TM */
-		ret.b.destination_shorthand = 0; /* No shorthand */
-		if (get_apic_mode () == APIC_MODE_X2APIC)
-			ret.b.destination = entry_low >> 32; /* DST */
-		else
-			ret.b.destination = entry_low >> 40 << 24;
-	}
-	return ret.v;
-}
-
-void
-ap_change_base_msr (u64 msrdata)
-{
-	/* Just clear cached value because WRMSR may fail. */
-	currentcpu->apic = APIC_MODE_NULL;
-}
+//static enum apic_mode
+//get_apic_mode (void)
+//{
+//	enum apic_mode ret = currentcpu->apic;
+//	u64 tmp;
+//
+//	if (ret == APIC_MODE_NULL) {
+//		if (!apic_supported ())
+//			return APIC_MODE_NULL;
+//		asm_rdmsr64 (MSR_IA32_APIC_BASE_MSR, &tmp);
+//		if (!(tmp & MSR_IA32_APIC_BASE_MSR_APIC_GLOBAL_ENABLE_BIT))
+//			ret = APIC_MODE_DISABLED;
+//		else if (is_x2apic_supported () && is_x2apic_enabled ())
+//			ret = APIC_MODE_X2APIC;
+//		else
+//			ret = APIC_MODE_XAPIC;
+//		currentcpu->apic = ret;
+//	}
+//	return ret;
+//}
+//
+//void
+//self_ipi (int intnum)
+//{
+//	enum apic_mode mode;
+//	volatile u32 *apic_icr;
+//
+//	if (intnum < 0x10 || intnum > 0xFF)
+//		return;
+//	mode = get_apic_mode ();
+//	if (mode == APIC_MODE_X2APIC) {
+//		asm_wrmsr32 (MSR_IA32_X2APIC_SELF_IPI, intnum, 0);
+//		return;
+//	}
+//	if (mode != APIC_MODE_XAPIC)
+//		return;
+//	if (!lar)
+//		return;
+//	apic_icr = &lar->interrupt_command_0;
+//	while ((*apic_icr & ICR_STATUS_BIT) != ICR_STATUS_IDLE);
+//	*apic_icr = ICR_DEST_SELF | ICR_TRIGGER_EDGE | ICR_LEVEL_ASSERT |
+//		ICR_MODE_FIXED | intnum;
+//}
+//
+//void
+//send_ipi (u64 icr)
+//{
+//	enum apic_mode mode;
+//	volatile u32 *apic_icr;
+//	volatile u32 *apic_icr_high;
+//
+//	if (!~icr)		/* Special invalid value used by
+//				 * msi_to_icr(). */
+//		return;
+//	if ((icr & ICR_MODE_MASK) == ICR_MODE_LOWEST_PRIORITY)
+//		/* Lowest Priority should be avoided in xAPIC mode or
+//		 * is reserved in x2APIC mode. */
+//		icr = (icr & ~ICR_MODE_MASK) | ICR_MODE_FIXED;
+//	mode = get_apic_mode ();
+//	if (mode == APIC_MODE_X2APIC) {
+//		asm_wrmsr64 (MSR_IA32_X2APIC_ICR, icr);
+//		return;
+//	}
+//	if (mode != APIC_MODE_XAPIC)
+//		return;
+//	if (!lar)
+//		return;
+//	apic_icr = &lar->interrupt_command_0;
+//	apic_icr_high = &lar->interrupt_command_1;
+//	while ((*apic_icr & ICR_STATUS_BIT) != ICR_STATUS_IDLE);
+//	*apic_icr_high = icr >> 32;
+//	*apic_icr = icr;
+//}
+//
+//void
+//eoi (void)
+//{
+//	enum apic_mode mode;
+//	volatile u32 *apic_eoi;
+//
+//	mode = get_apic_mode ();
+//	if (mode == APIC_MODE_X2APIC) {
+//		asm_wrmsr32 (MSR_IA32_X2APIC_EOI, 0, 0);
+//		return;
+//	}
+//	if (mode != APIC_MODE_XAPIC)
+//		return;
+//	if (!lar)
+//		return;
+//	apic_eoi = &lar->eoi;
+//	*apic_eoi = 0;
+//}
+//
+//u64
+//msi_to_icr (u32 maddr, u32 mupper, u16 mdata)
+//{
+//	union {
+//		u64 v;
+//		struct icr b;
+//	} ret;
+//
+//	ret.v = ~0ULL;
+//	if ((maddr & 0xFFF00000) == 0xFEE00000 && !mupper) {
+//		ret.v = 0;
+//		ret.b.vector = mdata;
+//		ret.b.delivery_mode = mdata >> 8;
+//		ret.b.destination_mode = maddr >> 2;
+//		ret.b.level = mdata >> 14;
+//		ret.b.trigger_mode = mdata >> 15;
+//		ret.b.destination_shorthand = 0; /* No shorthand */
+//		ret.b.destination = maddr >> 12 << 24;
+//		if (get_apic_mode () == APIC_MODE_X2APIC)
+//			ret.b.destination >>= 24;
+//	}
+//	return ret.v;
+//}
+//
+//bool
+//is_icr_destination_me (u64 icr)
+//{
+//	union {
+//		u64 v;
+//		struct icr b;
+//	} i;
+//	u32 mda;
+//	enum apic_mode mode;
+//	u32 id;
+//	u32 tmp;
+//	u32 *apic_local_apic_id;
+//	u32 *apic_ldr;
+//
+//	if (!~icr)		/* Special invalid value used by
+//				 * msi_to_icr(). */
+//		return false;
+//	i.v = icr;
+//	mda = i.b.destination;
+//	if (i.b.destination_shorthand)
+//		/* 0: No Shorthand
+//		   1: Self
+//		   2: All Including Self
+//		   3: All Excluding Self */
+//		return i.b.destination_shorthand != 3;
+//	mode = get_apic_mode ();
+//	if (mode == APIC_MODE_X2APIC) {
+//		/* x2APIC */
+//		if (!i.b.destination_mode) { /* Physical */
+//			asm_rdmsr32 (MSR_IA32_X2APIC_APICID, &id, &tmp);
+//			return mda == id;
+//		} else {	/* Logical */
+//			asm_rdmsr32 (MSR_IA32_X2APIC_LDR, &id, &tmp);
+//			return (mda & id & 0xFFFF) &&
+//				(mda & 0xFFFF0000) == (id & 0xFFFF0000);
+//		}
+//	}
+//	if (mode != APIC_MODE_XAPIC)
+//		return false;
+//	/* xAPIC */
+//	if (!lar)
+//		return false;
+//	if (!i.b.destination_mode) { /* Physical */
+//		apic_local_apic_id = &lar->local_apic_id;
+//		id = *apic_local_apic_id;
+//		return (mda & 0xFF000000) == (id & 0xFF000000);
+//	} else {		/* Logical */
+//		/* Flat model is expected. */
+//		apic_ldr = &lar->logical_destination;
+//		id = *apic_ldr;
+//		return !!(mda & id & 0xFF000000);
+//	}
+//}
+//
+//u64
+//dmar_irte_to_icr (u64 entry_low)
+//{
+//	union {
+//		u64 v;
+//		struct icr b;
+//	} ret;
+//
+//	ret.v = ~0ULL;
+//	if (entry_low & 1) {	/* Present */
+//		ret.v = 0;
+//		ret.b.vector = entry_low >> 16; /* V */
+//		ret.b.delivery_mode = entry_low >> 5; /* DLM */
+//		ret.b.destination_mode = entry_low >> 2; /* DM */
+//		ret.b.level = 1;
+//		ret.b.trigger_mode = entry_low >> 4; /* TM */
+//		ret.b.destination_shorthand = 0; /* No shorthand */
+//		if (get_apic_mode () == APIC_MODE_X2APIC)
+//			ret.b.destination = entry_low >> 32; /* DST */
+//		else
+//			ret.b.destination = entry_low >> 40 << 24;
+//	}
+//	return ret.v;
+//}
+//
+//void
+//ap_change_base_msr (u64 msrdata)
+//{
+//	/* Just clear cached value because WRMSR may fail. */
+//	currentcpu->apic = APIC_MODE_NULL;
+//}

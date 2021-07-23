@@ -3,6 +3,7 @@
 #define __CORE_PCPU_H
 
 #include <core/types.h>
+#include <core/pcpu.h>
 
 enum fullvirtualize_type {
 	FULLVIRTUALIZE_NONE,
@@ -56,5 +57,8 @@ void pcpu_list_foreach (bool (*func) (struct pcpu *p, void *q), void *q);
 void pcpu_list_add (struct pcpu *d);
 void pcpu_init (void);
 
+struct pcpu * get_currentcpu_arch (void);
+
+#define currentcpu get_currentcpu_arch()
 
 #endif // __CORE_PCPU_H

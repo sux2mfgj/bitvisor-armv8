@@ -17,7 +17,7 @@ get_tls (void)
 }
 
 struct pcpu *
-get_currentcpu (void)
+get_currentcpu_arch (void)
 {
 	struct tls *tls = get_tls ();
 	return tls->pcpu;

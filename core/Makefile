@@ -5,7 +5,8 @@ CFLAGS += -Iedk/Foundation/Efi/Include/ -Iedk/Foundation/Framework/Include/
 CFLAGS += -Iedk/Foundation/Include/ -Iedk/Foundation/Efi/
 
 objs-$(CONFIG_AARCH64) += aarch64_main.o
-objs-$(CONFIG_X86) += acpi.o acpi_dsdt.o ap.o assert.o beep.o cache.o callrealmode.o
+objs-y += ap.o
+objs-$(CONFIG_X86) += acpi.o acpi_dsdt.o assert.o beep.o cache.o callrealmode.o
 objs-$(CONFIG_X86) += calluefi.o config.o cpu.o cpu_emul.o cpu_interpreter.o cpu_mmu.o
 objs-$(CONFIG_X86) += cpu_mmu_spt.o cpu_seg.o cpu_stack.o cpuid.o cpuid_pass.o current.o
 objs-$(CONFIG_X86) += debug.o exint_pass.o gmm_access.o gmm_pass.o i386-stub.o iccard.o

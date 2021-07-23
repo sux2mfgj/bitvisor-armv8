@@ -57,4 +57,13 @@ DEF_SYS_REG_WRITE(tpidr_el2)
 #define daif_clear(value) asm volatile ("msr daifclr, %0" :: "I"(value));
 #define daif_set(value) asm volatile ("msr daifset, %0" :: "I"(value))
 
+static inline void asm_set_stack_and_jump(ulong sp, void *jmpto)
+{
+    asm volatile (
+        "mov sp, %0\n\t"
+        "mov x30, %1\n\t"
+        "ret\n\t"
+        ::"r"(sp), "r"(jmpto));
+}
+
 #endif

@@ -28,7 +28,8 @@
  */
 
 #include <core.h>
-//##include "ap.h"
+
+#include "ap.h"
 //#include "assert.h"
 //#include "callrealmode.h"
 //#include "calluefi.h"
@@ -189,23 +190,25 @@ load_drivers (void)
 //}
 //
 ///* make CPU's virtualization extension usable */
-// static void
-// virtualization_init_pcpu (void)
-//{
-//	currentcpu->fullvirtualize = FULLVIRTUALIZE_NONE;
-//	if (vt_available ()) {
-//		if (currentcpu->cpunum == 0)
-//			printf ("Using VMX.\n");
-//		vt_init ();
-//		currentcpu->fullvirtualize = FULLVIRTUALIZE_VT;
-//	}
-//	if (svm_available ()) {
-//		if (currentcpu->cpunum == 0)
-//			printf ("Using SVM.\n");
-//		svm_init ();
-//		currentcpu->fullvirtualize = FULLVIRTUALIZE_SVM;
-//	}
-//}
+static void
+virtualization_init_pcpu (void)
+{
+	// currentcpu->fullvirtualize = FULLVIRTUALIZE_NONE;
+	// arch_pcpu_enable_fullvirt();
+	//	currentcpu->fullvirtualize = FULLVIRTUALIZE_NONE;
+	//	if (vt_available ()) {
+	//		if (currentcpu->cpunum == 0)
+	//			printf ("Using VMX.\n");
+	//		vt_init ();
+	//		currentcpu->fullvirtualize = FULLVIRTUALIZE_VT;
+	//	}
+	//	if (svm_available ()) {
+	//		if (currentcpu->cpunum == 0)
+	//			printf ("Using SVM.\n");
+	//		svm_init ();
+	//		currentcpu->fullvirtualize = FULLVIRTUALIZE_SVM;
+	//	}
+}
 //
 ///* set current vcpu for full virtualization */
 // static void
@@ -491,44 +494,41 @@ load_drivers (void)
 //	debug_msgunregister ();
 //	msgclose (d);
 //}
-//
-// static void
-// call_parallel (void)
-//{
-//	static struct {
-//		char *name;
-//		ulong not_called;
-//	} paral[] = {
-//		{ "paral0", 1 },
-//		{ "paral1", 1 },
-//		{ "paral2", 1 },
-//		{ "paral3", 1 },
-//		{ NULL, 0 }
-//	};
-//	int i;
-//
-//	for (i = 0; paral[i].name; i++) {
-//		if (asm_lock_ulong_swap (&paral[i].not_called, 0))
-//			call_initfunc (paral[i].name);
-//	}
-//}
-//
-// static void
-// ap_proc (void)
-//{
-//	call_initfunc ("ap");
-//	call_parallel ();
-//	call_initfunc ("pcpu");
-//}
-//
-// static void
-// bsp_proc (void)
-//{
-//	call_initfunc ("bsp");
-//	call_parallel ();
-//	call_initfunc ("pcpu");
-//}
-//
+
+static void
+call_parallel (void)
+{
+	static struct {
+		char* name;
+		ulong not_called;
+	} paral[] = {{"paral0", 1},
+		     {"paral1", 1},
+		     {"paral2", 1},
+		     {"paral3", 1},
+		     {NULL, 0}};
+	int i;
+
+	for (i = 0; paral[i].name; i++) {
+		if (asm_lock_ulong_swap (&paral[i].not_called, 0))
+			call_initfunc (paral[i].name);
+	}
+}
+
+static void
+ap_proc (void)
+{
+	call_initfunc ("ap");
+	call_parallel ();
+	call_initfunc ("pcpu");
+}
+
+static void
+bsp_proc (void)
+{
+	call_initfunc ("bsp");
+	call_parallel ();
+	call_initfunc ("pcpu");
+}
 
 asmlinkage void
 vmm_main (void* bootarg)
@@ -546,10 +546,10 @@ vmm_main (void* bootarg)
 	load_drivers ();
 	while (1)
 		;
-	// start_all_processors (bsp_proc, ap_proc);
+	start_all_processors (bsp_proc, ap_proc);
 }
 
-// INITFUNC ("pcpu2", virtualization_init_pcpu);
+INITFUNC ("pcpu2", virtualization_init_pcpu);
 // INITFUNC ("pcpu5", create_pass_vm);
 // INITFUNC ("dbsp5", wait_for_create_pass_vm);
 // INITFUNC ("bsp0", debug_on_shift_key);
