@@ -82,7 +82,7 @@ asm_set_stack_and_jump (ulong sp, void *jmpto)
 static inline ulong
 asm_lock_ulong_swap (ulong *mem, ulong newval)
 {
-	ulong oldval;
+	//ulong oldval;
 
     //TODO: fix to use cas inst before multiprocessing. currently it causes an exception.
 	//asm volatile("cas %0, %2, %1"

@@ -43,7 +43,7 @@ static u64 vmm_l2_pt[512] __attribute__((aligned(PAGESIZE)));
 
 static void vm_init_global(void)
 {
-    int i;
+    //int i;
 
     //int l2_size = PAGESIZE * 512;
     //int l1_size = l2_size * 512;
