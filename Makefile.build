@@ -149,7 +149,6 @@ $(SED) -n -e '1{x' -e 's=^=$@ :>=' -e x -e '}' -e 's/#.*//' \
 
 .S.o :
 	$(V-info) CC $@
-	$(warning build asm $(ASFLAGS))
 	$(CC) $(ASFLAGS) -c -o $@ $< && \
 $(SED) -n -e '1{x' -e 's=^=$@ :>=' -e x -e '}' -e 's/#.*//' \
 -e '/\.include ".*"/{s=.*\.include "\([^"]*\)".*=<$(@D)/\1>=' -e H -e '}' \
