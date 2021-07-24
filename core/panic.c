@@ -1,12 +1,19 @@
 
 #include "types.h"
+#include "printf.h"
 
 /* print a message and stop */
 void __attribute__ ((noreturn))
 panic (char *format, ...)
 {
+	va_list ap;
+	va_start (ap, format);
+	vprintf (format, ap);
+	va_end (ap);
+
     //TODO
-    while(true);
+    while(true)
+        asm volatile ("wfi");
 }
 
 void
