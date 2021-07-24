@@ -30,54 +30,25 @@
 #ifndef _CORE_VCPU_H
 #define _CORE_VCPU_H
 
-#include "acpi.h"
-#include "cache.h"
-#include "cpu_mmu_spt.h"
-#include "cpuid.h"
-#include "exint.h"
-#include "gmm.h"
-#include "initipi.h"
-#include "io_io.h"
-#include "localapic.h"
-#include "mmio.h"
-#include "msr.h"
-#include "nmi.h"
-#include "svm.h"
-#include "types.h"
-#include "vmctl.h"
-#include "vt.h"
-#include "xsetbv.h"
+//#include "acpi.h"
+//#include "cache.h"
+//#include "cpu_mmu_spt.h"
+//#include "cpuid.h"
+//#include "exint.h"
+//#include "gmm.h"
+//#include "initipi.h"
+//#include "io_io.h"
+//#include "localapic.h"
+//#include "mmio.h"
+//#include "msr.h"
+//#include "nmi.h"
+//#include "svm.h"
+//#include "types.h"
+//#include "vmctl.h"
+//#include "vt.h"
+//#include "xsetbv.h"
 
-struct vcpu {
-	struct vcpu *next;
-	union {
-		struct vt vt;
-		struct svm svm;
-	} u;
-	bool halt;
-	bool initialized;
-	u64 tsc_offset;
-	bool updateip;
-	bool pass_vm;
-	u64 pte_addr_mask;
-	struct cpu_mmu_spt_data spt;
-	struct cpuid_data cpuid;
-	struct exint_func exint;
-	struct gmm_func gmm;
-	struct io_io_data io;
-	struct msr_data msr;
-	struct vmctl_func vmctl;
-	const struct mm_as *as;
-	/* vcpu0: data per VM */
-	struct vcpu *vcpu0;
-	struct mmio_data mmio;
-	struct nmi_func nmi;
-	struct xsetbv_data xsetbv;
-	struct acpi_data acpi;
-	struct localapic_data localapic;
-	struct initipi_func initipi;
-	struct cache_data cache;
-};
+#include <core/vcpu.h>
 
 void vcpu_list_foreach (bool (*func) (struct vcpu *p, void *q), void *q);
 void load_new_vcpu (struct vcpu *vcpu0);

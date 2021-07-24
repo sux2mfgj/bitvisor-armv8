@@ -47,7 +47,7 @@
 //#include "multiboot.h"
 //#include "osloader.h"
 //#include "panic.h"
-//#include "pcpu.h"
+#include "pcpu.h"
 #include "printf.h"
 //#include "process.h"
 //#include "regs.h"
@@ -58,7 +58,7 @@
 //#include "types.h"
 //#include "uefi.h"
 //#include "uefi_param_ext.h"
-//#include "vcpu.h"
+#include "vcpu.h"
 //#include "vmmcall.h"
 //#include "vmmcall_boot.h"
 //#include "vramwrite.h"
@@ -393,16 +393,16 @@ virtualization_init_pcpu (void)
  static void
  create_pass_vm (void)
 {
-//	bool bsp = false;
-//	static struct vcpu *vcpu0;
-//
-//	if (currentcpu->cpunum == 0)
-//		bsp = true;
-//	sync_all_processors ();
-//	if (bsp) {
-//		load_new_vcpu (NULL);
-//		vcpu0 = current;
-//	}
+	bool bsp = false;
+	static struct vcpu *vcpu0;
+
+	if (currentcpu->cpunum == 0)
+		bsp = true;
+	//sync_all_processors ();
+	if (bsp) {
+		load_new_vcpu (NULL);
+		vcpu0 = current;
+	}
 //	sync_all_processors ();
 //	if (!bsp)
 //		load_new_vcpu (vcpu0);
