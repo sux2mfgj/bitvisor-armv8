@@ -1,0 +1,5 @@
+mainmenu  "BitVisor $(ARCH)/ Configuration"
+
+menu "Architecture dependents"
+
+endmenu
