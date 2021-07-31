@@ -64,6 +64,7 @@
 //#include "vramwrite.h"
 //#include "vt.h"
 //#include "vt_init.h"
+#include <core/virt.h>
 //#include <share/uefi_boot.h>
 
 // static struct multiboot_info mi;
@@ -194,9 +195,11 @@ load_drivers (void)
 static void
 virtualization_init_pcpu (void)
 {
-	// currentcpu->fullvirtualize = FULLVIRTUALIZE_NONE;
 	// arch_pcpu_enable_fullvirt();
-	//	currentcpu->fullvirtualize = FULLVIRTUALIZE_NONE;
+    currentcpu->fullvirtualize = FULLVIRTUALIZE_NONE;
+    if (arch_check_virt_available()) {
+        currentcpu->fullvirtualize = arch_virt_init();
+    }
 	//	if (vt_available ()) {
 	//		if (currentcpu->cpunum == 0)
 	//			printf ("Using VMX.\n");
@@ -211,24 +214,30 @@ virtualization_init_pcpu (void)
 	//	}
 }
 //
-///* set current vcpu for full virtualization */
-// static void
-// set_fullvirtualize (void)
-//{
-//	switch (currentcpu->fullvirtualize) {
-//	case FULLVIRTUALIZE_NONE:
-//		panic ("Fatal error: This processor does not support"
-//		       " Intel VT or AMD Virtualization");
-//		break;
+/* set current vcpu for full virtualization */
+static void
+set_fullvirtualize (void)
+{
+	switch (currentcpu->fullvirtualize) {
+	case FULLVIRTUALIZE_NONE:
+		panic ("Fatal error: This processor does not support"
+		       " Intel VT or AMD Virtualization");
+		break;
+    default:
+        arch_vmctl_init ();
+        break;
+//TODO move to architecture dependent code
+//#ifdef X64
 //	case FULLVIRTUALIZE_VT:
 //		vmctl_vt_init ();
 //		break;
 //	case FULLVIRTUALIZE_SVM:
 //		vmctl_svm_init ();
 //		break;
-//	}
-//}
-//
+//#endif
+	}
+}
+
 // static void
 // initregs (void)
 //{
@@ -390,8 +399,9 @@ virtualization_init_pcpu (void)
 //	}
 //}
 //
- static void
- create_pass_vm (void)
+
+static void
+create_pass_vm (void)
 {
 	bool bsp = false;
 	static struct vcpu *vcpu0;
@@ -404,9 +414,9 @@ virtualization_init_pcpu (void)
 		vcpu0 = current;
 	}
 //	sync_all_processors ();
-//	if (!bsp)
-//		load_new_vcpu (vcpu0);
-//	set_fullvirtualize ();
+	if (!bsp)
+		load_new_vcpu (vcpu0);
+	set_fullvirtualize ();
 //	sync_all_processors ();
 //	current->pass_vm = true;
 //	current->vmctl.vminit ();

@@ -41,7 +41,7 @@
 #define KB 1024
 #define MB (1024*KB)
 #define GB (u64)(1024*MB)
-#define PAGESIZE 4096
+//#define PAGESIZE 4096
 #define PAGESHIFT 12
 
 /** I/O handler functions */

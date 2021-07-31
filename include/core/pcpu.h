@@ -4,6 +4,7 @@
 
 #include <core/pcpu.h>
 #include <core/types.h>
+#include <core.h>
 
 enum fullvirtualize_type {
 	FULLVIRTUALIZE_NONE,

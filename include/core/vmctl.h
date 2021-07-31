@@ -30,7 +30,7 @@
 #ifndef _CORE_VMCTL_H
 #define _CORE_VMCTL_H
 
-#include "cpu_seg.h"
+//#include "cpu_seg.h"
 #include "regs.h"
 #include "types.h"
 
@@ -43,12 +43,12 @@ struct vmctl_func {
 	void (*generate_pagefault) (ulong err, ulong cr2);
 	void (*read_general_reg) (enum general_reg reg, ulong *val);
 	void (*write_general_reg) (enum general_reg reg, ulong val);
-	void (*read_control_reg) (enum control_reg reg, ulong *val);
-	void (*write_control_reg) (enum control_reg reg, ulong val);
-	void (*read_sreg_sel) (enum sreg s, u16 *val);
-	void (*read_sreg_acr) (enum sreg s, ulong *val);
-	void (*read_sreg_base) (enum sreg s, ulong *val);
-	void (*read_sreg_limit) (enum sreg s, ulong *val);
+	//void (*read_control_reg) (enum control_reg reg, ulong *val);
+	//void (*write_control_reg) (enum control_reg reg, ulong val);
+	//void (*read_sreg_sel) (enum sreg s, u16 *val);
+	//void (*read_sreg_acr) (enum sreg s, ulong *val);
+	//void (*read_sreg_base) (enum sreg s, ulong *val);
+	//void (*read_sreg_limit) (enum sreg s, ulong *val);
 	void (*spt_setcr3) (ulong cr3);
 	void (*spt_tlbflush) (void);
 	void (*read_ip) (ulong *val);
@@ -59,8 +59,8 @@ struct vmctl_func {
 	void (*write_gdtr) (ulong base, ulong limit);
 	void (*read_idtr) (ulong *base, ulong *limit);
 	void (*write_idtr) (ulong base, ulong limit);
-	void (*write_realmode_seg) (enum sreg s, u16 val);
-	enum vmmerr (*writing_sreg) (enum sreg s);
+	//void (*write_realmode_seg) (enum sreg s, u16 val);
+	//enum vmmerr (*writing_sreg) (enum sreg s);
 	bool (*read_msr) (u32 msrindex, u64 *msrdata);
 	bool (*write_msr) (u32 msrindex, u64 msrdata);
 	void (*cpuid) (u32 ia, u32 ic, u32 *oa, u32 *ob, u32 *oc, u32 *od);

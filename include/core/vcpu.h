@@ -3,6 +3,7 @@
 
 #include <core/tls.h>
 #include <core/types.h>
+#include <core/vmctl.h>
 
 struct vcpu {
 	struct vcpu *next;
@@ -22,7 +23,7 @@ struct vcpu {
 	// struct gmm_func gmm;
 	// struct io_io_data io;
 	// struct msr_data msr;
-	// struct vmctl_func vmctl;
+	struct vmctl_func vmctl;
 	const struct mm_as *as;
 	/* vcpu0: data per VM */
 	struct vcpu *vcpu0;
