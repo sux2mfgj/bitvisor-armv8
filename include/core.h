@@ -127,4 +127,17 @@ asm_pause (void)
 
 #define cpu_relax            asm_pause
 
+#define PAGESIZE			0x1000
+#define PAGESIZE2M			0x200000
+#define PAGESIZE4M			0x400000
+#define PAGESIZE1G			0x40000000
+#define PAGESIZE_SHIFT			12
+#define PAGESIZE2M_SHIFT		21
+#define PAGESIZE4M_SHIFT		22
+#define PAGESIZE1G_SHIFT		30
+#define PAGESIZE_MASK			(PAGESIZE - 1)
+#define PAGESIZE2M_MASK			(PAGESIZE2M - 1)
+#define PAGESIZE4M_MASK			(PAGESIZE4M - 1)
+#define PAGESIZE1G_MASK			(PAGESIZE1G - 1)
+
 #endif

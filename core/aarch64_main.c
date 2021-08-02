@@ -98,11 +98,11 @@ get_fdt_base (void)
 
 #endif // CONFIG_DEVICE_TREE
 
-// static void
-// print_startvm_msg (void)
-//{
-//	printf ("Starting a virtual machine.\n");
-//}
+static void
+print_startvm_msg (void)
+{
+    printf ("Starting a virtual machine.\n");
+}
 
 static void
 load_drivers (void)
@@ -419,7 +419,7 @@ create_pass_vm (void)
 	set_fullvirtualize ();
 //	sync_all_processors ();
 //	current->pass_vm = true;
-//	current->vmctl.vminit ();
+	current->vmctl.vminit ();
 //	call_initfunc ("pass");
 //	sync_all_processors ();
 //	if (bsp) {
@@ -429,20 +429,20 @@ create_pass_vm (void)
 //		current->vmctl.init_signal ();
 //	}
 //	current->vmctl.enable_resume ();
-//	current->initialized = true;
+	current->initialized = true;
 //	sync_all_processors ();
-//	if (bsp)
-//		print_startvm_msg ();
-//	currentcpu->pass_vm_created = true;
+	if (bsp)
+		print_startvm_msg ();
+	currentcpu->pass_vm_created = true;
 //#ifdef DEBUG_GDB
 //	if (!bsp)
 //		for (;;)
 //			asm_cli_and_hlt ();
 //#endif
-//	current->vmctl.start_vm ();
+	current->vmctl.start_vm ();
 	panic ("VM stopped.");
 }
-//
+
 // static void
 // wait_for_create_pass_vm (void)
 //{

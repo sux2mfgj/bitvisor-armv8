@@ -66,6 +66,9 @@ DEF_SYS_REG_READ (hcr_el2)
 DEF_SYS_REG_WRITE (hcr_el2)
 DEF_SYS_REG_READ (tpidr_el2)
 DEF_SYS_REG_WRITE (tpidr_el2)
+DEF_SYS_REG_READ (vtcr_el2)
+DEF_SYS_REG_WRITE (vtcr_el2)
+DEF_SYS_REG_WRITE (vttbr_el2)
 
 #define daif_clear(value) asm volatile("msr daifclr, %0" ::"I"(value));
 #define daif_set(value) asm volatile("msr daifset, %0" ::"I"(value))

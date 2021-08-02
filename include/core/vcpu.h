@@ -7,6 +7,7 @@
 
 struct vcpu {
 	struct vcpu *next;
+	void *vm_ctx;
 	// union {
 	//	struct vt vt;
 	//	struct svm svm;

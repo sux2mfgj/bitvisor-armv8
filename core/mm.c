@@ -27,6 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <core.h>
 #include "mm.h"
 #include "list.h"
 #include "initfunc.h"
@@ -261,7 +262,7 @@ alloc_pages (void **virt, u64 *phys, int n)
 	i = get_alloc_pages_size (n, &j);
 	if (i >= 0)
 		goto found;
-	//panic ("alloc_pages (%d) failed.", n);
+	panic ("alloc_pages (%d) failed.", n);
 	return -1;
 found:
 	if (j < 0)
