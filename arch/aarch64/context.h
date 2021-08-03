@@ -8,6 +8,6 @@ struct aarch64_context {
 	u64 elr;
 	u64 spsr;
 	u64 sp;
-};
+} __attribute__ ((packed));
 
 #endif // _CONTEXT_H

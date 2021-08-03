@@ -46,14 +46,14 @@ aarch64_paging_init (void)
 	isb ();
 
 	struct aarch64_context *guest_ctx =
-		(struct aarch64_context *)alloc (sizeof *ctx->ctx);
+		(struct aarch64_context *)alloc (sizeof *ctx->guest_ctx);
 	guest_ctx->elr = (u64)0x50000000; // TODO
 	guest_ctx->spsr = SPSR_EL2_M_EL1H;
-	memset (guest_ctx->regs, 0x0, sizeof ctx->ctx->regs);
+	memset (guest_ctx->regs, 0x0, sizeof guest_ctx->regs);
 	guest_ctx->regs[0] = 0x40000000; // TODO fdt base address
 
 	ctx->guest_ctx = guest_ctx;
-	ctx->host_ctx = (struct aarch64_context *)alloc (sizeof *ctx->ctx);
+	ctx->host_ctx = (struct aarch64_context *)alloc (sizeof *ctx->host_ctx);
 
 	current->vm_ctx = ctx;
 }
