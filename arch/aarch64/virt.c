@@ -16,7 +16,7 @@ struct aarch64_vm_ctx {
 	u64 vtcr_el2;
 	struct aarch64_context *guest_ctx;
 	struct aarch64_context *host_ctx;
-};
+} __attribute__((packed));
 
 static void
 vm_mainloop (void)

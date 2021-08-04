@@ -8,7 +8,7 @@
 struct tls {
 	struct pcpu* pcpu;
 	struct vcpu* vcpu;
-};
+} __attribute__((packed));
 
 struct tls* get_tls (void);
 void set_tls (struct tls* tls);

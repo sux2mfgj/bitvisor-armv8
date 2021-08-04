@@ -58,6 +58,86 @@
 
     eret
 
+// TODO remove magic numbers. almost offset of struct members.
+.globl switch_from_guest
+switch_from_guest:
+    // save guest x0, x1 regs to stack temporarly
+    sub sp, sp, #16
+    ldp x0, x1, [sp, #0]
+
+    // load `struct tls *` variable
+    mrs x0, tpidr_el2
+    // load tls->vcpu (current)
+    ldr x1, [x0, #8]
+    // load vcpu->vm_ctx (struct aarch64_vm_ctx*)
+    ldr x0, [x1, #8]
+    // load vmctx->guest_ctx (struct context*)
+    ldr x1, [x0, #16]
+
+    // save guest context
+    stp x2, x3, [x1, #16 * 1]
+    stp x4, x5, [x1, #16 * 2]
+    stp x6, x7, [x1, #16 * 3]
+    stp x8, x9, [x1, #16 * 4]
+    stp x10, x11, [x1, #16 * 5]
+    stp x12, x13, [x1, #16 * 6]
+    stp x14, x15, [x1, #16 * 7]
+    stp x16, x17, [x1, #16 * 8]
+    stp x18, x19, [x1, #16 * 9]
+    stp x20, x21, [x1, #16 * 10]
+    stp x22, x23, [x1, #16 * 11]
+    stp x24, x25, [x1, #16 * 12]
+    stp x26, x27, [x1, #16 * 13]
+    stp x28, x29, [x1, #16 * 14]
+
+    mrs x2, elr_el2
+    stp x30, x2, [x1, #16 * 15]
+
+    mrs x2, spsr_el2
+    mov x3, sp
+    stp x2, x3, [x1, #16 * 16]
+
+    // push stacked guest x0 and x1 regs
+    stp x2, x3, [sp, #0]
+    stp x2, x3, [x1, #16 * 0]
+    add sp, sp, #16
+
+    // restore host context
+    // load vmctx->host_ctx (struct context*)
+    ldr x1, [x0, #24]
+
+    // load x0 and x1 and push to stack
+    ldp x2, x3, [x1, #16 * 0]
+    sub sp, sp, #16
+    stp x2, x3, [sp, #0]
+
+    ldr x30, [x1, #16 * 16]
+
+    ldp x2, x3, [x1, #16 * 15]
+    msr elr_el2, x2
+    msr spsr_el2, x3
+
+    ldp x28, x29, [x1, #16 * 14]
+    ldp x26, x27, [x1, #16 * 13]
+    ldp x24, x25, [x1, #16 * 12]
+    ldp x22, x23, [x1, #16 * 11]
+    ldp x20, x21, [x1, #16 * 10]
+    ldp x18, x19, [x1, #16 * 9]
+    ldp x16, x17, [x1, #16 * 8]
+    ldp x14, x15, [x1, #16 * 7]
+    ldp x12, x13, [x1, #16 * 6]
+    ldp x10, x11, [x1, #16 * 5]
+    ldp x8, x9, [x1, #16 * 4]
+    ldp x6, x7, [x1, #16 * 3]
+    ldp x4, x5, [x1, #16 * 2]
+    ldp x2, x3, [x1, #16 * 1]
+
+    // restore saved x0 and x1 from stack
+    ldp x0, x1, [sp, #0]
+    add sp, sp, #16
+
+    ret
+
 .globl return_from_exception
 return_from_exception:
     // store context(registers) ,and return to a cause of exception address.
