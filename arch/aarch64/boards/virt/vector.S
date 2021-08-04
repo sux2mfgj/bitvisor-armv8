@@ -48,11 +48,11 @@
     ldp x28, x29, [x1, #16 * 14]
 
     ldp x0, x30, [x1, #16 * 16]
-    msr x0, spsr_el2
+    msr spsr_el2, x0
     mov sp, x30
 
-    ldp x30, x0 [x1, #16 * 15]
-    msr x0, elr_el2
+    ldp x30, x0, [x1, #16 * 15]
+    msr elr_el2, x0
 
     ldp x0, x1, [x1, #16 * 0]
 
