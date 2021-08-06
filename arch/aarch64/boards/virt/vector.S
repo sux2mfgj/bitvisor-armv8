@@ -5,6 +5,7 @@
 // void _context_switch(struct aarch64_context *prev,
 //                      struct aarch64_context *next)
 .globl _context_switch
+_context_switch:
     // x0 is a pointer to prev, x1 is to next
 
     // save registers
