@@ -52,7 +52,7 @@ _context_switch:
     msr spsr_el2, x0
     mov sp, x30
 
-    ldp x30, x0, [x1, #16 * 15]
+    ldp x0, x30, [x1, #16 * 15]
     msr elr_el2, x0
 
     ldp x0, x1, [x1, #16 * 0]
