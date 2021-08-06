@@ -25,6 +25,9 @@ int_register_irqc (struct irqc *irqc)
 void
 irq_handler (void)
 {
+	// TODO
+	panic ("not yet implemented (%s:%s:%d)",
+            __FILE__, __func__, __LINE__);
 }
 
 // int callfunc_and_getint (asmlinkage void (*func)(void *arg), void *arg);
