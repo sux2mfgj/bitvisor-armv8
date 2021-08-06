@@ -81,8 +81,7 @@ static struct vmctl_func func = {
 int
 arch_check_virt_available (void)
 {
-	// TODO
-	return 0;
+	return FULLVIRTUALIZE_ARMV8_2;
 }
 
 int
