@@ -5,47 +5,9 @@
 #include <core/types.h>
 
 static inline void
-write_tcr_el2 (u64 value)
-{
-	asm volatile("msr tcr_el2, %[x]" ::[x] "r"(value));
-}
-
-static inline void
-write_mair_el2 (u64 value)
-{
-	asm volatile("msr mair_el2, %[x]" ::[x] "r"(value));
-}
-
-static inline u64
-read_sctlr_el2 (void)
-{
-	u64 value;
-	asm volatile("mrs %[x], sctlr_el2" : [x] "=r"(value));
-	return value;
-}
-
-static inline void
-write_sctlr_el2 (u64 value)
-{
-	asm volatile("msr sctlr_el2, %[x]" ::[x] "r"(value));
-}
-
-static inline void
-write_ttbr0_el2 (u64 value)
-{
-	asm volatile("msr ttbr0_el2, %[x]" ::[x] "r"(value));
-}
-
-static inline void
 isb (void)
 {
 	asm volatile("isb");
-}
-
-static inline void
-write_vbar_el2 (u64 value)
-{
-	asm volatile("msr vbar_el2, %[x]" ::[x] "r"(value));
 }
 
 #define DEF_SYS_REG_READ(name)                                      \
@@ -62,6 +24,16 @@ write_vbar_el2 (u64 value)
 		asm volatile("msr " #name ", %[x]" ::[x] "r"(value)); \
 	}
 
+DEF_SYS_REG_READ (tcr_el2)
+DEF_SYS_REG_WRITE (tcr_el2)
+DEF_SYS_REG_READ (mair_el2)
+DEF_SYS_REG_WRITE (mair_el2)
+DEF_SYS_REG_READ (sctlr_el2)
+DEF_SYS_REG_WRITE (sctlr_el2)
+DEF_SYS_REG_READ (ttbr0_el2)
+DEF_SYS_REG_WRITE (ttbr0_el2)
+DEF_SYS_REG_READ (vbar_el2)
+DEF_SYS_REG_WRITE (vbar_el2)
 DEF_SYS_REG_READ (hcr_el2)
 DEF_SYS_REG_WRITE (hcr_el2)
 DEF_SYS_REG_READ (tpidr_el2)
@@ -99,7 +71,8 @@ asm_lock_ulong_swap (ulong *mem, ulong newval)
 	// ulong oldval;
 
 	// TODO: fix to use cas inst before multiprocessing. currently it causes
-	// an exception. asm volatile("cas %0, %2, %1" 	     : "=r"(oldval), "+Q"(*mem)
+	// an exception. asm volatile("cas %0, %2, %1" 	     : "=r"(oldval),
+	// "+Q"(*mem)
 	//	     : "r"(newval));
 	// return oldval;
 	return 1;
