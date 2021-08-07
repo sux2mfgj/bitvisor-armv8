@@ -3,6 +3,7 @@
 #include <asm.h>
 
 #include "context.h"
+#include "exception.h"
 
 static void elx_sync_handler(struct aarch64_context *ctx)
 {

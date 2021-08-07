@@ -9,6 +9,7 @@
 #include <core/vmctl.h>
 
 #include "context.h"
+#include "exception.h"
 #include "mmu.h"
 #include "system.h"
 
@@ -32,13 +33,63 @@ void _context_switch (struct aarch64_context *prev,
 #define ESR_EL2_ISS2_OFFSET 32
 #define ESR_EL2_ISS2_MASK 0b11111
 
-enum esr_exception_class {
-	EC_UNKNOWN_REASON = 0b000000,
-	EC_TRAPPED_WF = 0b000001,
-	EC_INST_ABORT_FORM_LOW_EL = 0b100000,
-	EC_DATA_ABORT_FROM_LOW_EL = 0b100100,
-	EC_TRAPPED_MSR_MRS = 0b011000
+enum inst_abort_ifsc {
+	INST_ABORT_IFSC_ASIZE_L0 = 0b000000,
+	INST_ABORT_IFSC_ASIZE_L1 = 0b000001,
+	INST_ABORT_IFSC_ASIZE_L2 = 0b000010,
+	INST_ABORT_IFSC_ASIZE_L3 = 0b000011,
+	INST_ABORT_IFSC_TFAULE_L0 = 0b000100,
+	INST_ABORT_IFSC_TFAULE_L1 = 0b000101,
+	INST_ABORT_IFSC_TFAULE_L2 = 0b000110,
+	INST_ABORT_IFSC_TFAULE_L3 = 0b000111,
+	INST_ABORT_IFSC_AFLAG_L0 = 0b001000,
+	INST_ABORT_IFSC_AFLAG_L1 = 0b001001,
+	INST_ABORT_IFSC_AFLAG_L2 = 0b001010,
+	INST_ABORT_IFSC_AFLAG_L3 = 0b001011,
+	INST_ABORT_IFSC_PERMIT_L0 = 0b001100,
+	INST_ABORT_IFSC_PERMIT_L1 = 0b001101,
+	INST_ABORT_IFSC_PERMIT_L2 = 0b001110,
+	INST_ABORT_IFSC_PERMIT_L3 = 0b001111,
+	INST_ABORT_IFSC_SYNC_EXT = 0b010000,
+	INST_ABORT_IFSC_SYNC_EXT_LM1 = 0b010011,
+	INST_ABORT_IFSC_SYNC_EXT_L0 = 0b010100,
+	INST_ABORT_IFSC_SYNC_EXT_L1 = 0b010101,
+	INST_ABORT_IFSC_SYNC_EXT_L2 = 0b010110,
+	INST_ABORT_IFSC_SYNC_EXT_L3 = 0b010111,
+	// TODO add other exit reasons
 };
+
+static void
+handle_inst_abort (u32 iss)
+{
+#define INST_ABORT_ISS_IFSC_OFFSET 0
+#define INST_ABORT_ISS_IFSC_MASK 0b111111
+#define INST_ABORT_ISS_S1PTW_OFFSET 7
+#define INST_ABORT_ISS_S1PTW_MASK 0b1
+#define INST_ABORT_ISS_EA_OFFSET 8
+#define INST_ABORT_ISS_EA_MASK 0b1
+#define INST_ABORT_ISS_FNV_OFFSET 10
+#define INST_ABORT_ISS_FNV_MASK 0b1
+#define INST_ABORT_ISS_SET_OFFSET 11
+#define INST_ABORT_ISS_SET_MASK 0b11
+
+	u8 ifsc =
+		(iss >> INST_ABORT_ISS_IFSC_OFFSET) & INST_ABORT_ISS_IFSC_MASK;
+	switch ((enum inst_abort_ifsc)ifsc) {
+	case INST_ABORT_IFSC_TFAULE_L0:
+		not_yet_implemented ();
+	case INST_ABORT_IFSC_TFAULE_L1:
+		not_yet_implemented ();
+	case INST_ABORT_IFSC_TFAULE_L2:
+		not_yet_implemented ();
+	case INST_ABORT_IFSC_TFAULE_L3:
+		not_yet_implemented ();
+	default:
+		not_yet_implemented ();
+	}
+
+	not_yet_implemented ();
+}
 
 static void
 handle_guest_exit (void)
@@ -52,8 +103,9 @@ handle_guest_exit (void)
 	switch (ec) {
 	case EC_UNKNOWN_REASON:
 		panic ("found unknown exception code (1)");
-	case EC_TRAPPED_WF:
 	case EC_INST_ABORT_FORM_LOW_EL:
+		handle_inst_abort (iss);
+	case EC_TRAPPED_WF:
 	case EC_DATA_ABORT_FROM_LOW_EL:
 	case EC_TRAPPED_MSR_MRS:
 		not_yet_implemented ();
