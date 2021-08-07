@@ -8,6 +8,8 @@ entry:
     cmp x0, #0b1000
     b.ne unknown_el
 
+    mov x0, #0b0
+    msr spsel, x0
     ldr x30, =start_stack
     mov sp, x30
 

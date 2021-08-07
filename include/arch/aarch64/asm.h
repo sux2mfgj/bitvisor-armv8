@@ -68,7 +68,18 @@ DEF_SYS_REG_READ (tpidr_el2)
 DEF_SYS_REG_WRITE (tpidr_el2)
 DEF_SYS_REG_READ (vtcr_el2)
 DEF_SYS_REG_WRITE (vtcr_el2)
+DEF_SYS_REG_READ (vttbr_el2)
 DEF_SYS_REG_WRITE (vttbr_el2)
+DEF_SYS_REG_READ (esr_el2)
+DEF_SYS_REG_WRITE (esr_el2)
+DEF_SYS_REG_READ (sp_el0)
+DEF_SYS_REG_WRITE (sp_el0)
+DEF_SYS_REG_READ (sp_el1)
+DEF_SYS_REG_WRITE (sp_el1)
+DEF_SYS_REG_READ (sp_el2)
+DEF_SYS_REG_WRITE (sp_el2)
+DEF_SYS_REG_READ (spsel)
+DEF_SYS_REG_WRITE (spsel)
 
 #define daif_clear(value) asm volatile("msr daifclr, %0" ::"I"(value));
 #define daif_set(value) asm volatile("msr daifset, %0" ::"I"(value))
@@ -85,13 +96,12 @@ asm_set_stack_and_jump (ulong sp, void *jmpto)
 static inline ulong
 asm_lock_ulong_swap (ulong *mem, ulong newval)
 {
-	//ulong oldval;
+	// ulong oldval;
 
-    //TODO: fix to use cas inst before multiprocessing. currently it causes an exception.
-	//asm volatile("cas %0, %2, %1"
-	//	     : "=r"(oldval), "+Q"(*mem)
+	// TODO: fix to use cas inst before multiprocessing. currently it causes
+	// an exception. asm volatile("cas %0, %2, %1" 	     : "=r"(oldval), "+Q"(*mem)
 	//	     : "r"(newval));
-	//return oldval;
+	// return oldval;
 	return 1;
 }
 
