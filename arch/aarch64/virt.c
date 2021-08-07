@@ -56,7 +56,7 @@ handle_guest_exit (void)
 	case EC_INST_ABORT_FORM_LOW_EL:
 	case EC_DATA_ABORT_FROM_LOW_EL:
 	case EC_TRAPPED_MSR_MRS:
-		panic ("not yet implemented %s:%d", __func__, __LINE__);
+		not_yet_implemented ();
 	default:
 		panic ("found unknown exception code (2)");
 	};
@@ -74,8 +74,7 @@ vm_mainloop (void)
 		handle_guest_exit ();
 
 		// TODO
-		panic ("not yet implemented (%s:%s:%d)", __FILE__, __func__,
-		       __LINE__);
+		not_yet_implemented ();
 	}
 }
 
@@ -125,7 +124,10 @@ arch64_vminit (void)
 	write_spsel (tmp);
 
 	alloc_page ((void **)&tmp, NULL);
-	write_sp_el2 (tmp + PAGESIZE);
+
+	asm volatile("mov sp, %[x]" ::[x] "r"(tmp + PAGESIZE));
+
+	write_spsel (0);
 }
 
 // Hypervisoe Configuration Register (HCR_EL2)
