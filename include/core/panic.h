@@ -34,4 +34,7 @@ void panic_test (void);
 void panic (char *format, ...)
 	__attribute__ ((format (printf, 1, 2), noreturn));
 
+#define not_yet_implemented() panic("not yet implemented (%s:%s:%d)", \
+        __FILE__, __func__, __LINE__)
+
 #endif
