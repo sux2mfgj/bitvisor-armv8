@@ -4,6 +4,7 @@
 #include <core/tls.h>
 #include <core/types.h>
 #include <core/vmctl.h>
+#include <core/mmio.h>
 
 struct vcpu {
 	struct vcpu *next;
@@ -28,7 +29,7 @@ struct vcpu {
 	const struct mm_as *as;
 	/* vcpu0: data per VM */
 	struct vcpu *vcpu0;
-	// struct mmio_data mmio;
+	struct mmio_data mmio;
 	// struct nmi_func nmi;
 	// struct xsetbv_data xsetbv;
 	// struct acpi_data acpi;
