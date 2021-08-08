@@ -343,7 +343,7 @@ mmio_register_internal (phys_t gphys, uint len, mmio_handler_t handler,
 {
 	struct mmio_handle *p;
 
-	rw_spinlock_lock_ex (&current->vcpu0->mmio.rwlock);
+	//rw_spinlock_lock_ex (&current->vcpu0->mmio.rwlock);
 	LIST1_FOREACH (current->vcpu0->mmio.handle, p)
 	{
 		if (rangecheck (p, gphys, len, NULL, NULL))
@@ -365,7 +365,7 @@ mmio_register_internal (phys_t gphys, uint len, mmio_handler_t handler,
 	LIST1_ADD (current->vcpu0->mmio.handle, p);
 	scan (gphys, len, add, p);
 ret:
-	rw_spinlock_unlock_ex (&current->vcpu0->mmio.rwlock);
+	//rw_spinlock_unlock_ex (&current->vcpu0->mmio.rwlock);
 	return p;
 fail:
 	p = NULL;
@@ -391,15 +391,15 @@ mmio_unregister (void *handle)
 	struct mmio_handle *p;
 
 	p = handle;
-	if (rw_spinlock_trylock_ex (&current->vcpu0->mmio.rwlock)) {
-		p->unregistered = true;
-		current->vcpu0->mmio.unregister_flag = true;
-		return;
-	}
+	//if (rw_spinlock_trylock_ex (&current->vcpu0->mmio.rwlock)) {
+	//	p->unregistered = true;
+	//	current->vcpu0->mmio.unregister_flag = true;
+	//	return;
+	//}
 	LIST1_DEL (current->vcpu0->mmio.handle, p);
 	scan (p->gphys, p->len, del, p);
 	free (p);
-	rw_spinlock_unlock_ex (&current->vcpu0->mmio.rwlock);
+	//rw_spinlock_unlock_ex (&current->vcpu0->mmio.rwlock);
 }
 
 // void

@@ -56,7 +56,7 @@ struct mmio_list {
 struct mmio_data {
 	LIST1_DEFINE_HEAD (struct mmio_list, mmio[17]);
 	LIST1_DEFINE_HEAD (struct mmio_handle, handle);
-	rw_spinlock_t rwlock;
+	//rw_spinlock_t rwlock;
 	bool unregister_flag;
 	unsigned int lock_count;
 };
