@@ -30,10 +30,43 @@
 #ifndef __CORE_MMIO_H
 #define __CORE_MMIO_H
 
+#include <core/list.h>
+#include <core/mmio.h>
 #include <core/types.h>
+#include <core/vm.h>
 
 typedef int (*mmio_handler_t) (void *data, phys_t gphys, bool wr, void *buf,
 			       uint len, u32 flags);
+
+struct mmio_handle {
+	LIST1_DEFINE (struct mmio_handle);
+	phys_t gphys;
+	uint len;
+	void *data;
+	mmio_handler_t handler;
+	bool unregistered;
+	bool unlocked_handler;
+};
+
+struct mmio_list {
+	LIST1_DEFINE (struct mmio_list);
+	void *handle;
+};
+
+struct mmio_data {
+	LIST1_DEFINE_HEAD (struct mmio_list, mmio[17]);
+	LIST1_DEFINE_HEAD (struct mmio_handle, handle);
+	rw_spinlock_t rwlock;
+	bool unregister_flag;
+	unsigned int lock_count;
+};
+
+int mmio_access_memory (phys_t gphysaddr, bool wr, void *buf, uint len,
+			u32 flags);
+int mmio_access_page (phys_t gphysaddr, bool emulation);
+void mmio_lock (void);
+void mmio_unlock (void);
+phys_t mmio_range (phys_t gphysaddr, uint len);
 
 void *mmio_register (phys_t gphys, uint len, mmio_handler_t handler,
 		     void *data);
