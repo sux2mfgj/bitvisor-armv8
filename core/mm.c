@@ -523,6 +523,25 @@ alloc (uint len)
 	return r;
 }
 
+void
+free (void *virt)
+{
+	virt_t v = (virt_t)virt;
+	struct page *p = virt_to_page (v);
+	if (p->type == PAGE_TYPE_ALLOCATED_SMALL) {
+		int small_allocsize = p->small_allocsize;
+		u32 page_offset = v & PAGESIZE_MASK;
+		u32 block_offset = page_offset %
+			SMALL_ALLOCSIZE (small_allocsize);
+		if (block_offset)
+			tiny_free (p, v - block_offset, block_offset);
+		else
+			small_free (p, page_offset);
+	} else {
+		mm_page_free (p);
+	}
+}
+
 static void
 mm_init_global (void)
 {
