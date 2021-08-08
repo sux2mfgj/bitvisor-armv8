@@ -13,13 +13,6 @@
 #include "mmu.h"
 #include "system.h"
 
-struct aarch64_vm_ctx {
-	void *vttbr_el2;
-	u64 vtcr_el2;
-	struct aarch64_context *guest_ctx;
-	struct aarch64_context *host_ctx;
-} __attribute__ ((packed));
-
 // defined in vecotr.S
 void _context_switch (struct aarch64_context *prev,
 		      struct aarch64_context *next);

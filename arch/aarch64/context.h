@@ -1,7 +1,6 @@
 #ifndef _CONTEXT_H
 #define _CONTEXT_H
 
-
 #ifdef __ASM__
 
 #define CTX_OFFSET_REG_0 0x0
@@ -33,6 +32,14 @@ struct aarch64_context {
 	u64 spsr;
 	u64 sp;
 } __attribute__ ((packed));
+
+struct aarch64_vm_ctx {
+	void *vttbr_el2;
+	u64 vtcr_el2;
+	struct aarch64_context *guest_ctx;
+	struct aarch64_context *host_ctx;
+} __attribute__ ((packed));
+
 #endif // __ASM__
 
 #endif // _CONTEXT_H
