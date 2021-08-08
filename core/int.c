@@ -3,6 +3,7 @@
 
 #include "asm.h"
 #include "initfunc.h"
+#include "panic.h"
 #include "printf.h"
 
 extern void irq_vector (void);
@@ -26,8 +27,7 @@ void
 irq_handler (void)
 {
 	// TODO
-	panic ("not yet implemented (%s:%s:%d)",
-            __FILE__, __func__, __LINE__);
+	not_yet_implemented ();
 }
 
 // int callfunc_and_getint (asmlinkage void (*func)(void *arg), void *arg);
