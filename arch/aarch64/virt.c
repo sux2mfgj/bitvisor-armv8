@@ -12,6 +12,7 @@
 #include "exception.h"
 #include "mmu.h"
 #include "system.h"
+#include "vm.h"
 
 // defined in vecotr.S
 void _context_switch (struct aarch64_context *prev,
@@ -68,20 +69,22 @@ handle_inst_abort (u32 iss)
 
 	u8 ifsc =
 		(iss >> INST_ABORT_ISS_IFSC_OFFSET) & INST_ABORT_ISS_IFSC_MASK;
+
+	u64 guest_vaddr = read_far_el2 ();
+	at_st1_el1_read (guest_vaddr);
+	u64 abort_inst_paddr = read_par_el1 () & ~PAGESIZE_MASK;
+
 	switch ((enum inst_abort_ifsc)ifsc) {
 	case INST_ABORT_IFSC_TFAULE_L0:
-		not_yet_implemented ();
+		panic ("translation fault at level 0");
 	case INST_ABORT_IFSC_TFAULE_L1:
-		not_yet_implemented ();
 	case INST_ABORT_IFSC_TFAULE_L2:
-		not_yet_implemented ();
 	case INST_ABORT_IFSC_TFAULE_L3:
-		not_yet_implemented ();
+		aarch64_guest_tfault_handler (abort_inst_paddr);
+		break;
 	default:
 		not_yet_implemented ();
 	}
-
-	not_yet_implemented ();
 }
 
 static void
@@ -91,13 +94,14 @@ handle_guest_exit (void)
 
 	u32 ec = (esr >> ESR_EL2_EC_OFFSET) & ESR_EL2_EC_MASK;
 	u32 iss = (esr & ESR_EL2_ISS_MASK);
-	u32 il = (esr >> ESR_EL2_IL_OFFSET) & ESR_EL2_IL_OFFSET;
+	// u32 il = (esr >> ESR_EL2_IL_OFFSET) & ESR_EL2_IL_OFFSET;
 
 	switch (ec) {
 	case EC_UNKNOWN_REASON:
 		panic ("found unknown exception code (1)");
 	case EC_INST_ABORT_FORM_LOW_EL:
 		handle_inst_abort (iss);
+		break;
 	case EC_TRAPPED_WF:
 	case EC_DATA_ABORT_FROM_LOW_EL:
 	case EC_TRAPPED_MSR_MRS:
@@ -119,7 +123,6 @@ vm_mainloop (void)
 		handle_guest_exit ();
 
 		// TODO
-		not_yet_implemented ();
 	}
 }
 

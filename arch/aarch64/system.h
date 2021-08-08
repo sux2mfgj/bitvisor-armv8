@@ -2,21 +2,21 @@
 
 // System Control Register EL1
 
-#define SCTLR_EL1_MMU_OFFSET    (0)
-#define SCTLR_EL1_MMU_EN    (0b1 << SCTLR_EL1_MMU_OFFSET)
-#define SCTLR_EL1_MMU_DE    (0b1 << SCTLR_EL1_MMU_OFFSET)
+#define SCTLR_EL1_MMU_OFFSET (0)
+#define SCTLR_EL1_MMU_EN (0b1 << SCTLR_EL1_MMU_OFFSET)
+#define SCTLR_EL1_MMU_DE (0b1 << SCTLR_EL1_MMU_OFFSET)
 //
 //#define SCTLR_EL1_
 
 // System Control Register EL2
-#define SCTLR_EL2_MMU_OFFSET    (0)
-#define SCTLR_EL2_MMU_EN    (0b1 << SCTLR_EL2_MMU_OFFSET)
-
+#define SCTLR_EL2_MMU_OFFSET (0)
+#define SCTLR_EL2_MMU_EN (0b1 << SCTLR_EL2_MMU_OFFSET)
 
 // Saved Program Status Register EL2 (SPSR_EL2)
 // Aarch64
-// | M |R|F|I|A|D|BTYPE|SSBS|R    |IL|SS|PAN|UAO|DIT|TCO|R    |V |C |Z |N |R    |
-// |0 4|5|6|7|8|9|10 11|12  |13 19|20|21|22 |23 |24 |25 |26 27|28|29|30|31|32 63|
+// | M |R|F|I|A|D|BTYPE|SSBS|R    |IL|SS|PAN|UAO|DIT|TCO|R    |V |C |Z |N |R |
+// |0 4|5|6|7|8|9|10 11|12  |13 19|20|21|22 |23 |24 |25 |26 27|28|29|30|31|32
+// 63|
 #define SPSR_EL2_M_OFFSET 0
 #define SPSR_EL2_M_EL0T (0b0000 << SPSR_EL2_M_OFFSET)
 #define SPSR_EL2_M_EL1T (0b0100 << SPSR_EL2_M_OFFSET)
@@ -35,7 +35,6 @@
 
 #define SPSR_EL2_D_OFFSET 9
 #define SPSR_EL2_D (0b1 << SPSR_EL2_D_OFFSET)
-
 
 #define SPSR_EL2_T_OFFSET 5
 
@@ -61,6 +60,28 @@
 #define SPSR_EL2_Z_OFFSET 30
 #define SPSR_EL2_N_OFFSET 31
 
+// Saved Program Status Register EL1 (SPSR_EL1)
+#define SPSR_EL1_M0_3_OFFSET 0
+#define SPSR_EL1_M4_OFFSET 4
+#define SPSR_EL1_T_OFFSET 5
+
+#define SPSR_EL1_F_OFFSET 6
+#define SPSR_EL1_I_OFFSET 7
+#define SPSR_EL1_A_OFFSET 8
+#define SPSR_EL1_E_OFFSET 9
+#define SPSR_EL1_GE_OFFSET 16
+#define SPSR_EL1_IL_OFFSET 20
+#define SPSR_EL1_SS_OFFSET 21
+#define SPSR_EL1_PAN_OFFSET 22
+#define SPSR_EL1_SSBS_OFFSET 23
+#define SPSR_EL1_DIT_OFFSET 24
+//?
+//#define SPSR_EL1_IT_OFFSET 25
+#define SPSR_EL1_Q_OFFSET 27
+#define SPSR_EL1_V_OFFSET 28
+#define SPSR_EL1_C_OFFSET 29
+#define SPSR_EL1_Z_OFFSET 30
+#define SPSR_EL1_N_OFFSET 31
 
 // Exception Syndrome Register EL2 (ESR_EL2)
 #define ESR_EL2_ISS_OFFSET 0
@@ -75,5 +96,5 @@
 #define ESR_EL2_ISS2_OFFSET 32
 #define ESR_EL2_ISS2_MASK 0b11111
 
-//TODO
+// TODO
 //#define ESR_EL2_

@@ -10,6 +10,18 @@ isb (void)
 	asm volatile("isb");
 }
 
+static inline void
+at_st1_el1_read (u64 vaddr)
+{
+	asm volatile("at s1e1r, %[x]" ::[x] "r"(vaddr));
+}
+
+static inline void
+at_st1_el1_write (u64 vaddr)
+{
+	asm volatile("at s1e1w, %[x]" ::[x] "r"(vaddr));
+}
+
 #define DEF_SYS_REG_READ(name)                                      \
 	static inline u64 read_##name (void)                        \
 	{                                                           \
@@ -52,6 +64,8 @@ DEF_SYS_REG_READ (sp_el2)
 DEF_SYS_REG_WRITE (sp_el2)
 DEF_SYS_REG_READ (spsel)
 DEF_SYS_REG_WRITE (spsel)
+DEF_SYS_REG_READ (far_el2)
+DEF_SYS_REG_READ (par_el1)
 
 #define daif_clear(value) asm volatile("msr daifclr, %0" ::"I"(value));
 #define daif_set(value) asm volatile("msr daifset, %0" ::"I"(value))

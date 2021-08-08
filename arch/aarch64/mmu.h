@@ -6,7 +6,6 @@
 #define VTTBR_EL2_VMID_OFFSET 48
 #define VTTBR_EL2_VMID_MASK 0xffff000000000000ULL
 
-
 // Virtualization Translation Control Register (VTCR_EL2)
 // starting level of the stage 2 translation lookup
 #define VTCR_EL2_T0SZ_OFFSET 0
@@ -19,13 +18,13 @@
 #define VTCR_EL2_SL0 (0b01 << VTCR_EL2_SL0_OFFSET)
 
 #define VTCR_EL2_IRGN0_OFFSET 8
-#define VTCR_EL2_IRGN0_NC       (0b00 << VTCR_EL2_IRGN0_OFFSET)
+#define VTCR_EL2_IRGN0_NC (0b00 << VTCR_EL2_IRGN0_OFFSET)
 #define VTCR_EL2_IRGN0_WB_RA_WA (0b01 << VTCR_EL2_IRGN0_OFFSET)
 #define VTCR_EL2_IRGN0_WT_RA_WRA (0b10 << VTCR_EL2_IRGN0_OFFSET)
 #define VTCR_EL2_IRGN0_TB_RA_NRA (0b11 << VTCR_EL2_IRGN0_OFFSET)
 
 #define VTCR_EL2_ORGN0_OFFSET 10
-#define VTCR_EL2_ORGN0_NC       (0b00 << VTCR_EL2_ORGN0_OFFSET)
+#define VTCR_EL2_ORGN0_NC (0b00 << VTCR_EL2_ORGN0_OFFSET)
 #define VTCR_EL2_ORGN0_WB_RA_WA (0b01 << VTCR_EL2_ORGN0_OFFSET)
 #define VTCR_EL2_ORGN0_WT_RA_WRA (0b10 << VTCR_EL2_ORGN0_OFFSET)
 #define VTCR_EL2_ORGN0_TB_RA_NRA (0b11 << VTCR_EL2_ORGN0_OFFSET)
@@ -61,5 +60,53 @@
 #define VTCR_EL2_NSA_OFFSET (29)
 #define VTCR_EL2_NSA_S (0b0 << VTCR_EL2_NSA_OFFSET)
 #define VTCR_EL2_NSA_NS (0b1 << VTCR_EL2_NSA_OFFSET)
+
+// Attributes for Translation table
+#define MAIR_DEVICE_nGnRnE 0x00
+#define MAIR_NORMAL 0xff
+#define MAIR_DEVICE_POS 0
+#define MAIR_NORMAL_POS 1
+#define MAIR_VALUE                                       \
+	((MAIR_DEVICE_nGnRnE << (8 * MAIR_DEVICE_POS)) | \
+	 (MAIR_NORMAL << (8 * MAIR_NORMAL_POS)))
+
+#define PTE_PRESENT (1 << 0)
+#define PTE_TABLE (1 << 1)
+#define PTE_PAGE (1 << 1)
+#define PTE_BLOCK (0 << 1)
+
+// memory region attributes
+#define PTE_MRA_OFFSET 2
+#define PTE_MRA_DEVICE_nGnRnE (MAIR_DEVICE_POS << PTE_MRA_OFFSET)
+#define PTE_MRA_DEVICE PTE_MRA_DEVICE_nGnRnE
+#define PTE_MRA_NORMAL (MAIR_DEVICE_POS << PTE_MRA_OFFSET)
+
+// lower attributes
+#define LOW_ATTR_ATTR_IDX_OFFSET (2)
+#define LOW_ATTR_NS (1 << 5)
+#define LOW_ATTR_AP_OFFSET (6)
+#define LOW_ATTR_SH_OFFSET (8)
+#define LOW_ATTR_AF (1 << 10)
+#define LOW_ATTR_NG (1 << 11)
+#define LOW_ATTR_OA_OFFSET (12)
+#define LOW_ATTR_NT (1 << 16)
+
+// upper attributes
+#define UP_ATTR_GP (1ULL << 50)
+#define UP_ATTR_DBM (1ULL << 51)
+#define UP_ATTR_CONT (1ULL << 52)
+//#define UP_ATTR_
+
+#define MM_MEM_ATTR_OFFSET 2
+// TODO
+#define MM_MEM_ATTR (0b0101 << MM_MEM_ATTR_OFFSET)
+#define MM_STAGE2_S2AP_OFFSET 6
+#define MM_STAGE2_S2AP_NONE (0b00 << MM_STAGE2_S2AP_OFFSET)
+#define MM_STAGE2_S2AP_RO (0b01 << MM_STAGE2_S2AP_OFFSET)
+#define MM_STAGE2_S2AP_WO (0b10 << MM_STAGE2_S2AP_OFFSET)
+#define MM_STAGE2_S2AP_RW (0b11 << MM_STAGE2_S2AP_OFFSET)
+#define MM_STAGE2_SH_OFFSET 8
+// TODO
+#define MM_STAGE2_SH (0b11 << MM_STAGE2_SH_OFFSET)
 
 #endif // _MMU_H
