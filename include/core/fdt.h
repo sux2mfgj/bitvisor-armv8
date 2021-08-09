@@ -13,8 +13,17 @@ enum fdt_prop_type {
     FDT_PROP_STR_LIST,
 };
 
+enum fdt_node_type {
+	FDT_BEGIN_NODE = 0x00000001,
+	FDT_END_NODE = 0x00000002,
+	FDT_PROP = 0x00000003,
+	FDT_NOP = 0x00000004,
+	FDT_END = 0x00000009,
+};
+
 struct fdt_prop {
     struct fdt_prop *next;
+    struct fdt_node *parent;
     char* name;
     enum fdt_prop_type type;
     u32 len;
@@ -26,16 +35,22 @@ struct fdt_prop {
         u32 phandle;
         char *str_list;
     };
-    // for reg property
-    u32 address_cells, size_cells;
 };
+
 struct fdt_node {
     char* name;
+    enum fdt_node_type type;
     struct fdt_node *next;
     struct fdt_prop *prop_head;
     struct fdt_node *parent;
-    struct fdt_node *node_head;
+    struct fdt_node *node_head, *node_tail;
     u32 address_cells, size_cells;
+    enum {
+        CELLS_PARENT = 0b00, // use parent cells value
+        CELLS_BOTH = 0b11, // use own cells value
+        CELLS_ADDR = 0b10, // just use own addr cell
+        CELLS_SIZE = 0b01, // just use own size cell
+    } cells_type;
 };
 
 struct fdt_driver {

@@ -5,6 +5,7 @@
 
 #include "fdt.h"
 
+#include <core.h>
 #include <core/types.h>
 
 #include "initfunc.h"
@@ -26,14 +27,6 @@ swap_u32 (u32 val)
 	return (val << 16) | (val >> 16);
 }
 
-enum {
-	FDT_BEGIN_NODE = 0x00000001,
-	FDT_END_NODE = 0x00000002,
-	FDT_PROP = 0x00000003,
-	FDT_NOP = 0x00000004,
-	FDT_END = 0x00000009,
-};
-
 struct fdt_header {
 	u32 magic;
 	u32 totalsize;
@@ -53,6 +46,7 @@ struct fdt {
 	void *struct_current;
 	void *string_base;
 	void *mem_rsv_base;
+	struct fdt_node *root_node;
 	u32 version;
 };
 
@@ -137,8 +131,11 @@ fdt_call_driver_init (struct fdt_node *node)
 		return;
 	}
 
+	printf ("fdt: %s\n", compatible_prop->str_list);
+
 	for (p = __init_1_start; p != __init_1_end; p++) {
 		q = *p;
+		// TODO change to compare with all of entries.
 		if (!strcmp (q->compatible, compatible_prop->str_list)) {
 			q->init (node);
 			break;
@@ -177,12 +174,6 @@ fdt_prop_parse_value (struct fdt_prop *prop, void *data,
 	}
 	return;
 
-	// warnx("sizeof reg %ld", sizeof "reg");
-	if (!strncmp (prop->name, "reg", sizeof "reg")) {
-		prop->address_cells = parent->address_cells;
-		prop->size_cells = parent->size_cells;
-	}
-
 found:
 	switch (prop->type) {
 	case FDT_PROP_STRING: {
@@ -209,10 +200,12 @@ found:
 
 	if (!strncmp (prop->name, "#size-cells", sizeof "#size-cells")) {
 		parent->size_cells = prop->val_u32;
+		parent->cells_type |= CELLS_SIZE;
 	}
 
 	if (!strncmp (prop->name, "#address-cells", sizeof "#address-cells")) {
 		parent->address_cells = prop->val_u32;
+		parent->cells_type |= CELLS_ADDR;
 	}
 }
 
@@ -231,6 +224,7 @@ fdt_parse_prop (struct fdt *fdt, struct fdt_node *parent)
 	fdt->struct_current += sizeof (u32);
 
 	prop->name = fdt_get_string (fdt, nameoff);
+	prop->parent = parent;
 
 	// warnx("name: %s, prop len %d", prop->name, prop->len);
 
@@ -243,9 +237,8 @@ fdt_parse_prop (struct fdt *fdt, struct fdt_node *parent)
 }
 
 static void
-fdt_init_driver (void)
+fdt_parse (struct fdt_header *header)
 {
-	void *get_fdt_base (void);
 	int ret = fdt_setup_struct ((struct fdt_header *)get_fdt_base ());
 	if (ret)
 		panic ("cannot found fdt");
@@ -264,16 +257,15 @@ fdt_init_driver (void)
 				parent->size_cells = FDT_SIZE_CELLS_DEFAULT;
 			} else {
 				node->parent = parent;
-				node->address_cells = parent->address_cells;
-				node->size_cells = parent->size_cells;
+				node->cells_type = CELLS_PARENT;
 
 				if (parent->node_head) {
-					struct fdt_node *next =
-						parent->node_head->next;
-					parent->node_head->next = node;
-					node->next = next;
+					node->next = NULL;
+					parent->node_tail->next = node;
+					parent->node_tail = node;
 				} else {
 					parent->node_head = node;
+					parent->node_tail = node;
 				}
 				parent = node;
 			}
@@ -294,6 +286,7 @@ fdt_init_driver (void)
 		case FDT_END_NODE: {
 			fdt.struct_current += sizeof (u32);
 			fdt_call_driver_init (parent);
+
 			if (parent->parent) {
 				parent = parent->parent;
 			}
@@ -313,6 +306,80 @@ fdt_init_driver (void)
 	}
 
 done:
+	fdt.root_node = parent;
+}
+
+static u32
+fdt_get_totalsize (struct fdt_header *header)
+{
+	return swap_u32 (header->totalsize);
+}
+
+struct fdt_header *
+fdt_copy_to_local (void *base)
+{
+	u32 totalsize;
+	struct fdt_header *dest;
+	struct fdt_header *header = (struct fdt_header *)base;
+
+#define FDT_MAGIC_LITTLE 0xedfe0dd0
+	if (header->magic != FDT_MAGIC_LITTLE) {
+		return NULL;
+	}
+
+	totalsize = fdt_get_totalsize (header);
+
+	u32 pages = (totalsize / PAGESIZE) + !!(totalsize & PAGESIZE_MASK);
+
+	alloc_pages ((void **)&dest, NULL, pages);
+
+	memcpy (dest, base, totalsize);
+
+	return dest;
+}
+
+void *get_fdt_base (void);
+
+static void
+fdt_init_driver (void)
+{
+	struct fdt_header *orig = (struct fdt_header *)get_fdt_base ();
+	struct fdt_header *new;
+
+	new = fdt_copy_to_local (orig);
+
+	fdt_parse (new);
+}
+
+static struct fdt_node *
+fdt_search_node (struct fdt_node *parent, char *name)
+{
+	for (struct fdt_node *n = parent; n; n = n->next) {
+		if (!strcmp (n->name, name))
+			return n;
+
+		if (n->node_head)
+			return fdt_search_node (n->node_head, name);
+	}
+
+	return NULL;
+}
+
+struct fdt_node *
+fdt_get_node (char *name)
+{
+	return fdt_search_node (fdt.root_node, name);
+}
+
+struct fdt_prop *
+fdt_get_prop (struct fdt_node *node, char *name)
+{
+	for (struct fdt_prop *p = node->prop_head; p; p = p->next) {
+		if (!strcmp (p->name, name))
+			return p;
+	}
+
+	return NULL;
 }
 
 int
@@ -321,9 +388,9 @@ fdt_get_reg_value (struct fdt_node *node, int index, enum FDT_REG_TYPE type,
 {
 	for (struct fdt_prop *p = node->prop_head; p; p = p->next) {
 		if (!strcmp (p->name, "reg")) {
-			// assert(p->address_cells <= 2);
-			// assert(p->size_cells <= 2);
-			// assert(p->type == FDT_PROP_ARRAY);
+			ASSERT (p->address_cells <= 2);
+			ASSERT (p->size_cells <= 2);
+			ASSERT (p->type == FDT_PROP_ARRAY);
 
 			u64 address = 0;
 			u64 size = 0;
@@ -373,4 +440,157 @@ fdt_get_reg_value (struct fdt_node *node, int index, enum FDT_REG_TYPE type,
 	return -1;
 }
 
+static u32
+fdt_calc_prop_size (struct fdt_prop *prop)
+{
+	u32 size = 0;
+	// node type + length + nameoff
+	size += sizeof (u32) * 3;
+	size += prop->len + (-prop->len & 0b11);
+
+	return size;
+}
+
+static u32
+fdt_calc_node_size (struct fdt_node *node)
+{
+	u32 size = 0;
+
+	// type of node
+	size += sizeof (u32);
+	// aligned 4bytes string length
+	u32 tmp = strlen (node->name);
+	size += tmp + (-tmp & 0b11);
+
+	// prop nodes
+	for (struct fdt_prop *p = node->prop_head; p; p = p->next) {
+		size += fdt_calc_prop_size (p);
+	}
+
+	return size;
+}
+
+static u32
+fdt_calc_structblock_totalsize (struct fdt_node *node)
+{
+	u32 totalsize = 0;
+	for (struct fdt_node *n = node; n; n = n->next) {
+		totalsize += fdt_calc_node_size (n);
+
+		if (n->node_head)
+			totalsize +=
+				fdt_calc_structblock_totalsize (n->node_head);
+	}
+
+	return totalsize;
+}
+
+static void
+_fdt_load_structblock (struct fdt_node *node, void **base)
+{
+	// load FDT_BEGIN_NODE
+	*(u32 *)*base = swap_u32 (FDT_BEGIN_NODE);
+	*base += sizeof (u32);
+	u32 len = strlen (node->name) + 1;
+	strcpy ((char *)*base, node->name, len);
+	*base += len + (-len & 0b11);
+
+	// add nodes for properties
+	not_yet_implemented ();
+	for (struct fdt_prop *p = node->prop_head; p; p = p->next) {
+	}
+
+	// load FDT_END_NODE
+	*(u32 *)*base = swap_u32 (FDT_END_NODE);
+	*base += sizeof (u32);
+}
+
+static void
+fdt_load_structblock (struct fdt_node *node, void **base)
+{
+	not_yet_implemented ();
+	for (struct fdt_node *n = node; n; n = n->next) {
+	}
+
+	// load FDT_END
+}
+
+static u32
+fdt_calc_prop_string_totalsize (struct fdt_prop *prop)
+{
+	u32 totalsize = 0;
+
+	for (struct fdt_prop *p = prop; p; p = p->next) {
+		totalsize += strlen (p->name) + 1;
+	}
+
+	return totalsize;
+}
+
+static u32
+fdt_calc_stringblock_totalsize (struct fdt_node *node)
+{
+	u32 totalsize = 0;
+
+	for (struct fdt_node *n = node; n; n = n->next) {
+		totalsize += fdt_calc_prop_string_totalsize (n->prop_head);
+
+		if (n->node_head)
+			totalsize +=
+				fdt_calc_stringblock_totalsize (n->node_head);
+	}
+
+	return totalsize;
+}
+
+static void
+fdt_load_stringblock (struct fdt_node *node, void *base)
+{
+}
+
+static void
+fdt_load_to (void *dest)
+{
+	struct fdt_header *header;
+	// TODO update header
+	memcpy (dest, fdt.header, sizeof fdt.header);
+	header = dest;
+
+	// fdt.root_node
+	u32 struct_block_totalsize =
+		fdt_calc_structblock_totalsize (fdt.root_node);
+
+	u32 string_block_totalsize =
+		fdt_calc_stringblock_totalsize (fdt.root_node);
+
+#define FDT_MEM_RSVMAP_OFFSET 0x30
+	u32 offset = FDT_MEM_RSVMAP_OFFSET;
+	header->off_mem_rsvmap = swap_u32 (offset);
+	offset += 0x10;
+
+	header->off_dt_struct = swap_u32 (offset);
+	header->size_dt_struct = swap_u32 (struct_block_totalsize);
+	// TODO load struct block to (void*)header + offset;
+	offset += struct_block_totalsize;
+	offset += (-offset & 0x0f); // align 0x10
+
+	header->off_dt_strings = swap_u32 (offset);
+	header->size_dt_strings = swap_u32 (string_block_totalsize);
+	// TODO load string block to (void*)header + offset;
+	offset += string_block_totalsize;
+	offset += (-offset & 0x0f); // align 0x10
+
+	header->totalsize = offset;
+
+	not_yet_implemented ();
+}
+
+// should be update fdt (conceal, etc) before calling this function
+static void
+fdt_load_for_guest (void)
+{
+	fdt_load_to (get_fdt_base ());
+}
+
 INITFUNC ("driver0", fdt_init_driver);
+INITFUNC ("bsp0", fdt_load_for_guest);
