@@ -273,8 +273,6 @@ fdt_parse (struct fdt_header *header)
 		}
 		case FDT_PROP: {
 			struct fdt_prop *prop = fdt_parse_prop (&fdt, parent);
-			prop->address_cells = parent->address_cells;
-			prop->size_cells = parent->size_cells;
 			if (parent->prop_head) {
 				prop->next = parent->prop_head->next;
 				parent->prop_head->next = prop;
@@ -382,44 +380,63 @@ fdt_get_prop (struct fdt_node *node, char *name)
 	return NULL;
 }
 
+static u32
+fdt_get_addr_cells (struct fdt_node *node)
+{
+	if (node->cells_type & CELLS_ADDR)
+		return node->address_cells;
+	else
+		return fdt_get_addr_cells (node->parent);
+}
+
+static u32
+fdt_get_size_cells (struct fdt_node *node)
+{
+	if (node->cells_type & CELLS_SIZE)
+		return node->size_cells;
+	else
+		return fdt_get_size_cells (node->parent);
+}
+
 int
 fdt_get_reg_value (struct fdt_node *node, int index, enum FDT_REG_TYPE type,
 		   u64 *value)
 {
 	for (struct fdt_prop *p = node->prop_head; p; p = p->next) {
 		if (!strcmp (p->name, "reg")) {
-			ASSERT (p->address_cells <= 2);
-			ASSERT (p->size_cells <= 2);
 			ASSERT (p->type == FDT_PROP_ARRAY);
 
 			u64 address = 0;
 			u64 size = 0;
+			u32 address_cells = fdt_get_addr_cells (node);
+			u32 size_cells = fdt_get_size_cells (node);
+
 			void *base = p->base +
-				     sizeof (u32) * p->address_cells * index +
-				     sizeof (u32) * p->size_cells * index;
+				     sizeof (u32) * address_cells * index +
+				     sizeof (u32) * size_cells * index;
 
 			// check a range of the data
 			if (p->base + p->len <= base) {
 				return -1;
 			}
 
-			if (p->address_cells >= 1) {
+			if (address_cells >= 1) {
 				address = swap_u32 (*(u32 *)base);
 				base += sizeof (u32);
 			}
 
-			if (p->address_cells == 2) {
+			if (address_cells == 2) {
 				address =
 					address << 32 | swap_u32 (*(u32 *)base);
 				base += sizeof (u32);
 			}
 
-			if (p->size_cells >= 1) {
+			if (size_cells >= 1) {
 				size = swap_u32 (*(u32 *)base);
 				base += sizeof (u32);
 			}
 
-			if (p->size_cells == 2) {
+			if (size_cells == 2) {
 				size = size << 32 | swap_u32 (*(u32 *)base);
 				base += sizeof (u32);
 			}
