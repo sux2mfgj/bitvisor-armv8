@@ -380,6 +380,7 @@ small_alloc (int small_allocsize)
 	u32 full = (2U << (nbits - 1)) - 1;
 	u32 n;
 	struct page *p;
+	int i;
 	// spinlock_lock (&mm_small_lock);
 	LIST1_FOREACH (small_freelist[small_allocsize], p)
 	{
@@ -401,7 +402,7 @@ small_alloc (int small_allocsize)
 	LIST1_PUSH (small_freelist[small_allocsize], p);
 ok:
 	// spinlock_unlock (&mm_small_lock);
-	int i = BIT_TO_INDEX (n);
+	i = BIT_TO_INDEX (n);
 	ASSERT (i >= 0);
 	ASSERT (i < nbits);
 	return page_to_virt (p) + SMALL_ALLOCSIZE (small_allocsize) * i;
@@ -418,6 +419,7 @@ tiny_alloc (int tiny_allocsize)
 	ASSERT (sizeof *p <= 2 * TINY_ALLOCSIZE (0));
 	ASSERT (sizeof *p <= TINY_ALLOCSIZE (1));
 	u32 empty_bitmap = tiny_allocsize ? 1 : 3;
+	int i;
 	// spinlock_lock (&mm_tiny_lock);
 	LIST1_FOREACH (tiny_freelist[tiny_allocsize], p)
 	{
@@ -437,7 +439,7 @@ tiny_alloc (int tiny_allocsize)
 	LIST1_PUSH (tiny_freelist[tiny_allocsize], p);
 ok:
 	// spinlock_unlock (&mm_tiny_lock);
-	int i = BIT_TO_INDEX (n);
+	i = BIT_TO_INDEX (n);
 	ASSERT (i > 0);
 	ASSERT (i < nbits);
 	return (virt_t)p + TINY_ALLOCSIZE (tiny_allocsize) * i;
