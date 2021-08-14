@@ -283,3 +283,6 @@ config USE_BUILTIN_STRING
     bool "Use gcc builtin string"
     default y
 
+config CGREEN_TEST
+    bool "Enable cgreen test"
+    default n
