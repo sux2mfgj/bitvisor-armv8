@@ -7,10 +7,13 @@ enum fdt_prop_type {
 	FDT_PROP_EMPTY,
 	FDT_PROP_U32,
 	FDT_PROP_U64,
+	FDT_PROP_PH_LIST,
+	FDT_PROP_U32_LIST, // TODO should be unite the PH_LIST toU32_LIST
 	FDT_PROP_STRING,
 	FDT_PROP_ARRAY,
 	FDT_PROP_PHANDLE,
 	FDT_PROP_STR_LIST,
+	FDT_PROP_ENC_ARY,
 };
 
 enum fdt_node_type {
@@ -30,6 +33,7 @@ struct fdt_prop {
 	union {
 		u32 val_u32;
 		u64 val_u64;
+		u32 *u32_ary;
 		char *string;
 		void *base;
 		u32 phandle;

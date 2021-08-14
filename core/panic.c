@@ -9,6 +9,7 @@ void __attribute__ ((noreturn)) panic (char *format, ...)
 	va_start (ap, format);
 	vprintf (format, ap);
 	va_end (ap);
+	printf ("\n");
 
 	// TODO
 	while (true)

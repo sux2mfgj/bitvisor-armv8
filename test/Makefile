@@ -3,9 +3,9 @@ CC = gcc
 
 TARGET	:= test
 
-CFLAGS:=  -lcgreen -I../include -DCGREEN
+CFLAGS:=  -Wall -lcgreen -I../include -DCGREEN
 
-$(TARGET): ../core/fdt.o fdt_test.o fdt_stub.o
+$(TARGET): ../core/fdt.o fdt_stub.o fdt_test.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
 .o.c:

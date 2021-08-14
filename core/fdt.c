@@ -80,7 +80,6 @@ fdt_parse_begin_node (struct fdt *fdt)
 	fdt->struct_current += sizeof (u32);
 
 	node->name = (char *)fdt->struct_current;
-	// warnx("node name: %s", node->name);
 
 	while (*(char *)fdt->struct_current++) {
 	}
@@ -112,8 +111,6 @@ fdt_call_driver_init (struct fdt_node *node)
 		return;
 	}
 
-	printf ("fdt: %s\n", compatible_prop->str_list);
-
 	for (p = __init_1_start; p != __init_1_end; p++) {
 		q = *p;
 		// TODO change to compare with all of entries.
@@ -130,14 +127,59 @@ fdt_get_string (struct fdt *fdt, u32 offset)
 	return (char *)fdt->string_base + offset;
 }
 
+static void
+fdt_parse_clock_freq (struct fdt_prop *prop, void *data)
+{
+	switch (prop->len) {
+	case sizeof (u32):
+		prop->val_u32 = swap_u32 (*(u32 *)data);
+		break;
+	case sizeof (u64):
+		not_yet_implemented ();
+		break;
+	default:
+		panic ("%s: unknown prop length", __func__);
+	}
+}
+
+static void
+fdt_parse_range (struct fdt_prop *prop, void *data)
+{
+	if (prop->len == 0) {
+		prop->type = FDT_PROP_EMPTY;
+		return;
+	}
+
+	not_yet_implemented ();
+}
+
 static struct prop_table_entry {
 	char *name;
 	enum fdt_prop_type type;
+	void (*parse) (struct fdt_prop *prop, void *data);
 } prop_table[] = {
 	// memory node
-	{"device_type", FDT_PROP_STRING},  {"reg", FDT_PROP_ARRAY},
-	{"compatible", FDT_PROP_STR_LIST}, {"#size-cells", FDT_PROP_U32},
-	{"#address-cells", FDT_PROP_U32},  {},
+	{"device_type", FDT_PROP_STRING},
+	{"reg", FDT_PROP_ARRAY},
+	{"compatible", FDT_PROP_STR_LIST},
+	{"#size-cells", FDT_PROP_U32},
+	{"#address-cells", FDT_PROP_U32},
+	{"interrupt-parent", FDT_PROP_PHANDLE},
+	{"clock-names", FDT_PROP_STR_LIST},
+	{"clocks", FDT_PROP_PH_LIST},
+	{"interrupts", FDT_PROP_U32_LIST},
+	{"phandle", FDT_PROP_PHANDLE},
+	{"clock-output-names", FDT_PROP_STR_LIST},
+	{"clock-frequency", FDT_PROP_ENC_ARY, fdt_parse_clock_freq},
+	{"#clock-cells", FDT_PROP_U32},
+	{"ranges", FDT_PROP_ENC_ARY, fdt_parse_range},
+	{"interrupt-controller", FDT_PROP_EMPTY},
+	{"#interrupt-cells", FDT_PROP_U32},
+	{"always-on", FDT_PROP_EMPTY},
+	{"stdout-path", FDT_PROP_STRING},
+	{"stdin-path", FDT_PROP_STRING},
+	{"bootargs", FDT_PROP_STRING},
+	{},
 };
 
 static void
@@ -153,6 +195,7 @@ fdt_prop_parse_value (struct fdt_prop *prop, void *data,
 		}
 		entry++;
 	}
+	panic ("%s: unknown prop found: %s\n", __func__, prop->name);
 	return;
 
 found:
@@ -166,6 +209,7 @@ found:
 		break;
 	}
 	case FDT_PROP_U32: {
+		ASSERT (prop->len == sizeof (u32));
 		prop->val_u32 = swap_u32 (*(u32 *)data);
 		break;
 	}
@@ -173,9 +217,25 @@ found:
 		prop->base = data;
 		break;
 	}
-	case FDT_PROP_U64:
+	case FDT_PROP_PHANDLE: {
+		prop->phandle = swap_u32 (*(u32 *)data);
+		break;
+	}
+	case FDT_PROP_PH_LIST: {
+		prop->base = data;
+		break;
+	}
+	case FDT_PROP_U32_LIST: {
+		prop->base = data;
+		break;
+	}
+	case FDT_PROP_ENC_ARY: {
+		entry->parse (prop, data);
+		break;
+	}
 	case FDT_PROP_EMPTY:
-	case FDT_PROP_PHANDLE:
+		break;
+	case FDT_PROP_U64:
 		panic ("not yet implemented fdt prop type");
 	}
 
@@ -207,8 +267,6 @@ fdt_parse_prop (struct fdt *fdt, struct fdt_node *parent)
 	prop->name = fdt_get_string (fdt, nameoff);
 	prop->parent = parent;
 
-	// warnx("name: %s, prop len %d", prop->name, prop->len);
-
 	fdt_prop_parse_value (prop, fdt->struct_current, parent);
 
 	fdt->struct_current += prop->len;
@@ -217,11 +275,10 @@ fdt_parse_prop (struct fdt *fdt, struct fdt_node *parent)
 	return prop;
 }
 
-static void
+test_static struct fdt *
 fdt_parse (struct fdt_header *header)
 {
-	struct fdt *fdt =
-		fdt_setup_struct ((struct fdt_header *)get_fdt_base ());
+	struct fdt *fdt = fdt_setup_struct (header);
 	if (!fdt)
 		panic ("cannot found fdt");
 
@@ -235,6 +292,7 @@ fdt_parse (struct fdt_header *header)
 			struct fdt_node *node = fdt_parse_begin_node (fdt);
 			if (!parent) {
 				parent = node;
+				parent->name = "root";
 				parent->address_cells = FDT_ADDR_CELLS_DEFAULT;
 				parent->size_cells = FDT_SIZE_CELLS_DEFAULT;
 			} else {
@@ -251,6 +309,7 @@ fdt_parse (struct fdt_header *header)
 				}
 				parent = node;
 			}
+			printf ("%s :%s\n", __func__, node->name);
 			break;
 		}
 		case FDT_PROP: {
@@ -287,6 +346,8 @@ fdt_parse (struct fdt_header *header)
 
 done:
 	fdt->root_node = parent;
+
+	return fdt;
 }
 
 static u32
@@ -328,7 +389,7 @@ fdt_init_driver (void)
 
 	new = fdt_copy_to_local (orig);
 
-	fdt_parse (new);
+	g_fdt = fdt_parse (new);
 }
 
 static struct fdt_node *
@@ -455,21 +516,29 @@ fdt_calc_node_size (struct fdt_node *node)
 {
 	u32 size = 0;
 
-	// type of node
+	// type of node (FDT_BEGIN_NODE)
 	size += sizeof (u32);
 	// aligned 4bytes string length
-	u32 tmp = strlen (node->name);
+	u32 tmp = strlen (node->name) + 1;
 	size += tmp + (-tmp & 0b11);
 
 	// prop nodes
 	for (struct fdt_prop *p = node->prop_head; p; p = p->next) {
-		size += fdt_calc_prop_size (p);
+		u32 psize = fdt_calc_prop_size (p);
+		size += psize;
+		printf ("%s: node: %s: prop: %s: size: %d\n", __func__,
+			node->name, p->name, psize);
 	}
+
+	// type of node (FDT_END_NODE)
+	size += sizeof (u32);
+
+	printf ("%s: node: %s size: %d\n", __func__, node->name, size);
 
 	return size;
 }
 
-static u32
+test_static u32
 fdt_calc_structblock_totalsize (struct fdt_node *node)
 {
 	u32 totalsize = 0;
@@ -526,7 +595,7 @@ fdt_calc_prop_string_totalsize (struct fdt_prop *prop)
 	return totalsize;
 }
 
-static u32
+test_static u32
 fdt_calc_stringblock_totalsize (struct fdt_node *node)
 {
 	u32 totalsize = 0;
