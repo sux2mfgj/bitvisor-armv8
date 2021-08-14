@@ -6,12 +6,13 @@
 #include "fdt.h"
 
 #include <core.h>
+#include <core/string.h>
 #include <core/types.h>
+#include <test.h>
 
 #include "initfunc.h"
 #include "mm.h"
 #include "panic.h"
-#include "string.h"
 
 extern struct fdt_driver *__init_1_start[], *__init_1_end[];
 
@@ -27,29 +28,6 @@ swap_u32 (u32 val)
 	return (val << 16) | (val >> 16);
 }
 
-struct fdt_header {
-	u32 magic;
-	u32 totalsize;
-	u32 off_dt_struct;
-	u32 off_dt_strings;
-	u32 off_mem_rsvmap;
-	u32 version;
-	u32 last_comp_version;
-	u32 boot_cpuid_phys;
-	u32 size_dt_strings;
-	u32 size_dt_struct;
-};
-
-struct fdt {
-	struct fdt_header *header;
-	void *struct_base;
-	void *struct_current;
-	void *string_base;
-	void *mem_rsv_base;
-	struct fdt_node *root_node;
-	u32 version;
-};
-
 #define FDT_ADDR_CELLS_DEFAULT 2
 #define FDT_SIZE_CELLS_DEFAULT 1
 
@@ -61,30 +39,33 @@ align_4byte (struct fdt *fdt)
 	}
 }
 
-static struct fdt fdt;
-static int
+static struct fdt *g_fdt;
+
+test_static struct fdt *
 fdt_setup_struct (struct fdt_header *header)
 {
-	fdt.header = header;
+	struct fdt *fdt = alloc (sizeof (struct fdt));
+
+	fdt->header = header;
 #define FDT_MAGIC_LITTLE 0xedfe0dd0
-	if (fdt.header->magic != FDT_MAGIC_LITTLE) {
-		return 1;
+	if (fdt->header->magic != FDT_MAGIC_LITTLE) {
+		return NULL;
 	}
 
-	u32 off_struct = swap_u32 (fdt.header->off_dt_struct);
-	u32 off_strings = swap_u32 (fdt.header->off_dt_strings);
+	u32 off_struct = swap_u32 (fdt->header->off_dt_struct);
+	u32 off_strings = swap_u32 (fdt->header->off_dt_strings);
 	// u32 off_mem_rsv = swap_u32(fdt.header->off_mem_rsvmap);
-	fdt.version = swap_u32 (fdt.header->version);
+	fdt->version = swap_u32 (fdt->header->version);
 	// u32 size_struct = swap_u32(fdt.header->size_dt_struct);
 	// u32 size_strings = swap_u32(fdt.header->size_dt_strings);
 
 	// structure block
-	fdt.struct_base = (void *)fdt.header + off_struct;
-	fdt.struct_current = fdt.struct_base;
+	fdt->struct_base = (void *)fdt->header + off_struct;
+	fdt->struct_current = fdt->struct_base;
 
-	fdt.string_base = (void *)fdt.header + off_strings;
+	fdt->string_base = (void *)fdt->header + off_strings;
 
-	return 0;
+	return fdt;
 }
 
 static struct fdt_node *
@@ -239,18 +220,19 @@ fdt_parse_prop (struct fdt *fdt, struct fdt_node *parent)
 static void
 fdt_parse (struct fdt_header *header)
 {
-	int ret = fdt_setup_struct ((struct fdt_header *)get_fdt_base ());
-	if (ret)
+	struct fdt *fdt =
+		fdt_setup_struct ((struct fdt_header *)get_fdt_base ());
+	if (!fdt)
 		panic ("cannot found fdt");
 
 	struct fdt_node *parent = NULL;
 
 	while (1) {
-		u32 type = *(u32 *)fdt.struct_current;
+		u32 type = *(u32 *)fdt->struct_current;
 
 		switch (swap_u32 (type)) {
 		case FDT_BEGIN_NODE: {
-			struct fdt_node *node = fdt_parse_begin_node (&fdt);
+			struct fdt_node *node = fdt_parse_begin_node (fdt);
 			if (!parent) {
 				parent = node;
 				parent->address_cells = FDT_ADDR_CELLS_DEFAULT;
@@ -272,7 +254,7 @@ fdt_parse (struct fdt_header *header)
 			break;
 		}
 		case FDT_PROP: {
-			struct fdt_prop *prop = fdt_parse_prop (&fdt, parent);
+			struct fdt_prop *prop = fdt_parse_prop (fdt, parent);
 			if (parent->prop_head) {
 				prop->next = parent->prop_head->next;
 				parent->prop_head->next = prop;
@@ -282,7 +264,7 @@ fdt_parse (struct fdt_header *header)
 			break;
 		}
 		case FDT_END_NODE: {
-			fdt.struct_current += sizeof (u32);
+			fdt->struct_current += sizeof (u32);
 			fdt_call_driver_init (parent);
 
 			if (parent->parent) {
@@ -291,7 +273,7 @@ fdt_parse (struct fdt_header *header)
 			break;
 		}
 		case FDT_END: {
-			fdt.struct_current = 0;
+			fdt->struct_current = 0;
 			goto done;
 		}
 		case FDT_NOP:
@@ -304,7 +286,7 @@ fdt_parse (struct fdt_header *header)
 	}
 
 done:
-	fdt.root_node = parent;
+	fdt->root_node = parent;
 }
 
 static u32
@@ -366,7 +348,7 @@ fdt_search_node (struct fdt_node *parent, char *name)
 struct fdt_node *
 fdt_get_node (char *name)
 {
-	return fdt_search_node (fdt.root_node, name);
+	return fdt_search_node (g_fdt->root_node, name);
 }
 
 struct fdt_prop *
@@ -509,7 +491,7 @@ _fdt_load_structblock (struct fdt_node *node, void **base)
 	*(u32 *)*base = swap_u32 (FDT_BEGIN_NODE);
 	*base += sizeof (u32);
 	u32 len = strlen (node->name) + 1;
-	strcpy ((char *)*base, node->name, len);
+	memcpy ((char *)*base, node->name, len);
 	*base += len + (-len & 0b11);
 
 	// add nodes for properties
@@ -570,15 +552,15 @@ fdt_load_to (void *dest)
 {
 	struct fdt_header *header;
 	// TODO update header
-	memcpy (dest, fdt.header, sizeof fdt.header);
+	memcpy (dest, g_fdt->header, sizeof g_fdt->header);
 	header = dest;
 
 	// fdt.root_node
 	u32 struct_block_totalsize =
-		fdt_calc_structblock_totalsize (fdt.root_node);
+		fdt_calc_structblock_totalsize (g_fdt->root_node);
 
 	u32 string_block_totalsize =
-		fdt_calc_stringblock_totalsize (fdt.root_node);
+		fdt_calc_stringblock_totalsize (g_fdt->root_node);
 
 #define FDT_MEM_RSVMAP_OFFSET 0x30
 	u32 offset = FDT_MEM_RSVMAP_OFFSET;

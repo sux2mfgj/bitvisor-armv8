@@ -31,14 +31,23 @@
 #define __CORE_TYPES_H
 
 #include <share/vmm_types.h>
+#include <generated/autoconf.h>
+
+#ifdef CGREEN
+#include <stdbool.h>
+#else
 
 #define NULL			((void *)0)
 
 typedef unsigned long int	size_t;
+
 typedef enum {
 	false = 0,
 	true = 1,
 } bool;
+
+#endif // CGREEN
+
 union mem {
 	u8 byte;
 	u16 word;
