@@ -81,8 +81,7 @@ fdt_parse_begin_node (struct fdt *fdt)
 
 	node->name = (char *)fdt->struct_current;
 
-	while (*(char *)fdt->struct_current++) {
-	}
+	fdt->struct_current += strlen (node->name) + 1;
 
 	align_4byte (fdt);
 
@@ -183,7 +182,7 @@ static struct prop_table_entry {
 };
 
 static void
-fdt_prop_parse_value (struct fdt_prop *prop, void *data,
+fdt_parse_prop_value (struct fdt_prop *prop, void *data,
 		      struct fdt_node *parent)
 {
 	struct prop_table_entry *entry = &prop_table[0];
@@ -267,7 +266,7 @@ fdt_parse_prop (struct fdt *fdt, struct fdt_node *parent)
 	prop->name = fdt_get_string (fdt, nameoff);
 	prop->parent = parent;
 
-	fdt_prop_parse_value (prop, fdt->struct_current, parent);
+	fdt_parse_prop_value (prop, fdt->struct_current, parent);
 
 	fdt->struct_current += prop->len;
 	align_4byte (fdt);
@@ -292,7 +291,7 @@ fdt_parse (struct fdt_header *header)
 			struct fdt_node *node = fdt_parse_begin_node (fdt);
 			if (!parent) {
 				parent = node;
-				parent->name = "root";
+				// parent->name = "root";
 				parent->address_cells = FDT_ADDR_CELLS_DEFAULT;
 				parent->size_cells = FDT_SIZE_CELLS_DEFAULT;
 			} else {
@@ -309,7 +308,6 @@ fdt_parse (struct fdt_header *header)
 				}
 				parent = node;
 			}
-			printf ("%s :%s\n", __func__, node->name);
 			break;
 		}
 		case FDT_PROP: {
@@ -523,17 +521,14 @@ fdt_calc_node_size (struct fdt_node *node)
 	size += tmp + (-tmp & 0b11);
 
 	// prop nodes
-	for (struct fdt_prop *p = node->prop_head; p; p = p->next) {
-		u32 psize = fdt_calc_prop_size (p);
-		size += psize;
-		printf ("%s: node: %s: prop: %s: size: %d\n", __func__,
-			node->name, p->name, psize);
-	}
+	for (struct fdt_prop *p = node->prop_head; p; p = p->next)
+		size += fdt_calc_prop_size (p);
+
+	for (struct fdt_node *n = node->node_head; n; n = n->next)
+		size += fdt_calc_node_size (n);
 
 	// type of node (FDT_END_NODE)
 	size += sizeof (u32);
-
-	printf ("%s: node: %s size: %d\n", __func__, node->name, size);
 
 	return size;
 }
@@ -542,15 +537,40 @@ test_static u32
 fdt_calc_structblock_totalsize (struct fdt_node *node)
 {
 	u32 totalsize = 0;
-	for (struct fdt_node *n = node; n; n = n->next) {
-		totalsize += fdt_calc_node_size (n);
 
-		if (n->node_head)
-			totalsize +=
-				fdt_calc_structblock_totalsize (n->node_head);
-	}
+	totalsize += fdt_calc_node_size (node);
+
+	// end node
+	totalsize += sizeof (u32);
 
 	return totalsize;
+}
+
+static void
+fdt_load_prop_value (struct fdt_prop *prop, void **base)
+{
+	switch (prop->type) {
+	default:
+		printf ("%s: type %d", __func__, prop->type);
+		not_yet_implemented ();
+	}
+}
+
+static void
+fdt_load_prop (struct fdt_prop *prop, void **base)
+{
+	*(u32 *)*base = swap_u32 (FDT_PROP);
+	*base += sizeof (u32);
+
+	*(u32 *)*base = swap_u32 (prop->len);
+	*base += sizeof (u32);
+
+	// TODO calculate nameoffset
+	*(u32 *)*base = swap_u32 (0);
+	*base += sizeof (u32);
+
+	fdt_load_prop_value (prop, base);
+	*base += prop->len + (-prop->len & 0b11);
 }
 
 static void
@@ -566,6 +586,11 @@ _fdt_load_structblock (struct fdt_node *node, void **base)
 	// add nodes for properties
 	not_yet_implemented ();
 	for (struct fdt_prop *p = node->prop_head; p; p = p->next) {
+		fdt_load_prop (p, base);
+	}
+
+	for (struct fdt_node *n = node->node_head; n; n = n->next) {
+		_fdt_load_structblock (n, base);
 	}
 
 	// load FDT_END_NODE
@@ -576,20 +601,64 @@ _fdt_load_structblock (struct fdt_node *node, void **base)
 static void
 fdt_load_structblock (struct fdt_node *node, void **base)
 {
-	not_yet_implemented ();
-	for (struct fdt_node *n = node; n; n = n->next) {
-	}
+	_fdt_load_structblock (node, base);
 
 	// load FDT_END
+	*(u32 *)*base = swap_u32 (FDT_END);
+}
+
+struct string_list {
+	struct string_list *next;
+	char *str;
+};
+
+static int
+fdt_try_append_string (struct string_list **head, char *str)
+{
+	struct string_list *current = *head;
+	for (; current; current = current->next) {
+		if (!strcmp (str, current->str)) {
+			return 0;
+		}
+	}
+
+	struct string_list *tmp;
+	tmp = alloc (sizeof (struct string_list));
+	tmp->next = *head;
+	tmp->str = str;
+	*head = tmp;
+
+	return 1;
 }
 
 static u32
-fdt_calc_prop_string_totalsize (struct fdt_prop *prop)
+fdt_calc_prop_string_totalsize (struct fdt_prop *prop,
+				struct string_list **head)
 {
 	u32 totalsize = 0;
 
 	for (struct fdt_prop *p = prop; p; p = p->next) {
-		totalsize += strlen (p->name) + 1;
+		if (fdt_try_append_string (head, p->name)) {
+			totalsize += strlen (p->name) + 1;
+		}
+	}
+
+	return totalsize;
+}
+
+static u32
+_fdt_calc_stringblock_totalsize (struct fdt_node *node,
+				 struct string_list **head)
+{
+	u32 totalsize = 0;
+
+	for (struct fdt_node *n = node; n; n = n->next) {
+		totalsize +=
+			fdt_calc_prop_string_totalsize (n->prop_head, head);
+
+		if (n->node_head)
+			totalsize += _fdt_calc_stringblock_totalsize (
+				n->node_head, head);
 	}
 
 	return totalsize;
@@ -598,21 +667,12 @@ fdt_calc_prop_string_totalsize (struct fdt_prop *prop)
 test_static u32
 fdt_calc_stringblock_totalsize (struct fdt_node *node)
 {
-	u32 totalsize = 0;
-
-	for (struct fdt_node *n = node; n; n = n->next) {
-		totalsize += fdt_calc_prop_string_totalsize (n->prop_head);
-
-		if (n->node_head)
-			totalsize +=
-				fdt_calc_stringblock_totalsize (n->node_head);
-	}
-
-	return totalsize;
+	struct string_list *head = NULL;
+	return _fdt_calc_stringblock_totalsize (node, &head);
 }
 
 static void
-fdt_load_stringblock (struct fdt_node *node, void *base)
+fdt_load_stringblock (struct fdt_node *node, void **base)
 {
 }
 
@@ -624,7 +684,6 @@ fdt_load_to (void *dest)
 	memcpy (dest, g_fdt->header, sizeof g_fdt->header);
 	header = dest;
 
-	// fdt.root_node
 	u32 struct_block_totalsize =
 		fdt_calc_structblock_totalsize (g_fdt->root_node);
 

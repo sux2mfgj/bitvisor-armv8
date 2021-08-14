@@ -62,9 +62,21 @@ Ensure (FDT, structblock_size_all)
 	assert_that (NULL != fdt->root_node);
 
 	int size = fdt_calc_structblock_totalsize (fdt->root_node);
-	printf ("totalsize %d\n", size);
-	// the value 0x3d0 is obtained by fdtdump cmd.
+	// 	printf ("totalsize 0x%x\n", size);
 	assert_that (size == 0x3d0);
+}
+
+uint32_t fdt_calc_stringblock_totalsize (struct fdt_node *node);
+Ensure (FDT, stringblock_size_all)
+{
+	struct fdt *fdt = fdt_parse (
+		(struct fdt_header *)get_dtb_base (qemu_dtb_filename));
+	assert_that (fdt != NULL);
+	assert_that (NULL != fdt->root_node);
+
+	int size = fdt_calc_stringblock_totalsize (fdt->root_node);
+	// 	printf ("totalsize 0x%x\n", size);
+	assert_that (size == 0xe9);
 }
 
 /*
@@ -97,7 +109,7 @@ Ensure (FDT, structblock_size_0)
 	assert_that (NULL != fdt->root_node);
 
 	int size = fdt_calc_structblock_totalsize (fdt->root_node);
-	printf ("totalsize %d\n", size);
+	// 	printf ("totalsize 0x%x\n", size);
 	assert_that (size == 0x10);
 }
 /*
@@ -134,12 +146,8 @@ Ensure (FDT, structblock_size_1)
 	assert_that (NULL != fdt->root_node);
 
 	int size = fdt_calc_structblock_totalsize (fdt->root_node);
-	printf ("totalsize %d\n", size);
+	// 	printf ("size 0x%x\n", size);
 	assert_that (size == 0x60);
-}
-
-Ensure (FDT, stringblock_size)
-{
 }
 
 int
@@ -151,6 +159,6 @@ main (int argc, char **argv)
 	add_test_with_context (suite, FDT, structblock_size_0);
 	add_test_with_context (suite, FDT, structblock_size_1);
 	add_test_with_context (suite, FDT, structblock_size_all);
-	add_test_with_context (suite, FDT, stringblock_size);
+	add_test_with_context (suite, FDT, stringblock_size_all);
 	return run_test_suite (suite, create_text_reporter ());
 }
