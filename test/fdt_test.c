@@ -66,7 +66,13 @@ Ensure (FDT, structblock_size_all)
 	assert_that (size == 0x3d0);
 }
 
-uint32_t fdt_calc_stringblock_totalsize (struct fdt_node *node);
+struct string_list {
+	struct string_list *next;
+	char *str;
+	u32 offset;
+};
+uint32_t fdt_calc_stringblock_totalsize (struct fdt_node *node,
+					 struct string_list **);
 Ensure (FDT, stringblock_size_all)
 {
 	struct fdt *fdt = fdt_parse (
@@ -74,9 +80,13 @@ Ensure (FDT, stringblock_size_all)
 	assert_that (fdt != NULL);
 	assert_that (NULL != fdt->root_node);
 
-	int size = fdt_calc_stringblock_totalsize (fdt->root_node);
+	struct string_list *str_list;
+	int size = fdt_calc_stringblock_totalsize (fdt->root_node, &str_list);
 	// 	printf ("totalsize 0x%x\n", size);
 	assert_that (size == 0xe9);
+	for (struct string_list *c = str_list; c; c = c->next) {
+		printf ("%s: %s 0x%x\n", __func__, c->str, c->offset);
+	}
 }
 
 /*
@@ -146,8 +156,74 @@ Ensure (FDT, structblock_size_1)
 	assert_that (NULL != fdt->root_node);
 
 	int size = fdt_calc_structblock_totalsize (fdt->root_node);
-	// 	printf ("size 0x%x\n", size);
 	assert_that (size == 0x60);
+}
+
+Ensure (FDT, stringblock_size_1)
+{
+	struct fdt *fdt =
+		fdt_parse ((struct fdt_header *)get_dtb_base (test_dtb_1));
+
+	struct string_list *str_list = NULL;
+	fdt_calc_stringblock_totalsize (fdt->root_node, &str_list);
+	for (struct string_list *c = str_list; c; c = c->next) {
+		printf ("%s: %s 0x%x\n", __func__, c->str, c->offset);
+	}
+}
+
+uint32_t swap_u32 (uint32_t);
+
+void fdt_load_to (struct fdt *, void **);
+Ensure (FDT, fdt_load_0)
+{
+	struct fdt_header *header =
+		(struct fdt_header *)get_dtb_base (test_dtb_0);
+	struct fdt *fdt = fdt_parse (header);
+
+	void *base = calloc (2, swap_u32 (header->totalsize));
+
+	fdt_load_to (fdt, base);
+
+	struct fdt_header *nheader = (struct fdt_header *)base;
+
+#define FDT_MAGIC_BIG 0xedfe0dd0
+	assert_that (nheader->magic, is_equal_to (FDT_MAGIC_BIG));
+
+	assert_that (swap_u32 (nheader->off_dt_struct),
+		     is_equal_to (swap_u32 (header->off_dt_struct)));
+	assert_that (swap_u32 (nheader->off_dt_strings),
+		     is_equal_to (swap_u32 (header->off_dt_strings)));
+	assert_that (swap_u32 (nheader->size_dt_struct),
+		     is_equal_to (swap_u32 (header->size_dt_struct)));
+	assert_that (swap_u32 (nheader->size_dt_strings),
+		     is_equal_to (swap_u32 (header->size_dt_strings)));
+
+	assert_that (swap_u32 (nheader->totalsize),
+		     is_equal_to (swap_u32 (header->totalsize)));
+}
+
+Ensure (FDT, fdt_load_1)
+{
+	struct fdt_header *header =
+		(struct fdt_header *)get_dtb_base (qemu_dtb_filename);
+	struct fdt *fdt = fdt_parse (header);
+
+	void *base = calloc (2, swap_u32 (header->totalsize));
+
+	fdt_load_to (fdt, base);
+
+	struct fdt_header *nheader = (struct fdt_header *)base;
+	assert_that (swap_u32 (nheader->off_dt_struct),
+		     is_equal_to (swap_u32 (header->off_dt_struct)));
+	assert_that (swap_u32 (nheader->off_dt_strings),
+		     is_equal_to (swap_u32 (header->off_dt_strings)));
+	assert_that (swap_u32 (nheader->size_dt_struct),
+		     is_equal_to (swap_u32 (header->size_dt_struct)));
+	assert_that (swap_u32 (nheader->size_dt_strings),
+		     is_equal_to (swap_u32 (header->size_dt_strings)));
+
+	assert_that (swap_u32 (nheader->totalsize),
+		     is_equal_to (swap_u32 (header->totalsize)));
 }
 
 int
@@ -156,9 +232,16 @@ main (int argc, char **argv)
 	TestSuite *suite = create_test_suite ();
 	add_test_with_context (suite, FDT, get_address);
 	add_test_with_context (suite, FDT, setup_struct);
+
 	add_test_with_context (suite, FDT, structblock_size_0);
 	add_test_with_context (suite, FDT, structblock_size_1);
 	add_test_with_context (suite, FDT, structblock_size_all);
+
+	add_test_with_context (suite, FDT, stringblock_size_1);
 	add_test_with_context (suite, FDT, stringblock_size_all);
+
+	add_test_with_context (suite, FDT, fdt_load_0);
+	add_test_with_context (suite, FDT, fdt_load_1);
+
 	return run_test_suite (suite, create_text_reporter ());
 }

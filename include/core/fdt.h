@@ -8,7 +8,7 @@ enum fdt_prop_type {
 	FDT_PROP_U32,
 	FDT_PROP_U64,
 	FDT_PROP_PH_LIST,
-	FDT_PROP_U32_LIST, // TODO should be unite the PH_LIST toU32_LIST
+	FDT_PROP_U32_LIST, // TODO should be unite the PH_LIST to U32_LIST
 	FDT_PROP_STRING,
 	FDT_PROP_ARRAY,
 	FDT_PROP_PHANDLE,
@@ -28,6 +28,7 @@ struct fdt_prop {
 	struct fdt_prop *next;
 	struct fdt_node *parent;
 	char *name;
+	u32 name_offset;
 	enum fdt_prop_type type;
 	u32 len;
 	union {
@@ -36,7 +37,6 @@ struct fdt_prop {
 		u32 *u32_ary;
 		char *string;
 		void *base;
-		u32 phandle;
 		char *str_list;
 	};
 };
