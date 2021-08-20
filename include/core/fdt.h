@@ -44,7 +44,7 @@ struct fdt_prop {
 struct fdt_node {
 	char *name;
 	enum fdt_node_type type;
-	struct fdt_node *next;
+	struct fdt_node *prev, *next;
 	struct fdt_prop *prop_head;
 	struct fdt_node *parent;
 	struct fdt_node *node_head, *node_tail;

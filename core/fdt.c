@@ -327,11 +327,14 @@ fdt_parse (struct fdt_header *header)
 
 				if (parent->node_head) {
 					node->next = NULL;
+					node->prev = parent->node_tail;
 					parent->node_tail->next = node;
 					parent->node_tail = node;
 				} else {
 					parent->node_head = node;
 					parent->node_tail = node;
+					node->next = NULL;
+					node->prev = NULL;
 				}
 				parent = node;
 			}
@@ -417,15 +420,15 @@ fdt_init_driver (void)
 	g_fdt = fdt_parse (new);
 }
 
-static struct fdt_node *
-fdt_search_node (struct fdt_node *parent, char *name)
+test_static struct fdt_node *
+_fdt_get_node (struct fdt_node *parent, char *name)
 {
 	for (struct fdt_node *n = parent; n; n = n->next) {
 		if (!strcmp (n->name, name))
 			return n;
 
 		if (n->node_head)
-			return fdt_search_node (n->node_head, name);
+			return _fdt_get_node (n->node_head, name);
 	}
 
 	return NULL;
@@ -434,7 +437,7 @@ fdt_search_node (struct fdt_node *parent, char *name)
 struct fdt_node *
 fdt_get_node (char *name)
 {
-	return fdt_search_node (g_fdt->root_node, name);
+	return _fdt_get_node (g_fdt->root_node, name);
 }
 
 struct fdt_prop *
@@ -523,6 +526,19 @@ fdt_get_reg_value (struct fdt_node *node, int index, enum FDT_REG_TYPE type,
 	}
 
 	return -1;
+}
+
+void
+fdt_conceal_node (struct fdt_node *node)
+{
+	struct fdt_node *prev = node->prev;
+	struct fdt_node *next = node->next;
+	if (prev) {
+		prev->next = node->next;
+	}
+	if (next) {
+		next->prev = prev;
+	}
 }
 
 static u32

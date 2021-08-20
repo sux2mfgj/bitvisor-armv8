@@ -171,6 +171,39 @@ Ensure (FDT, stringblock_size_1)
 	}
 }
 
+static void
+dump_node (struct fdt_node *node, int nest)
+{
+	for (struct fdt_node *n = node; n; n = n->next) {
+		for (int i = 0; i < nest; ++i) {
+			printf ("--");
+		}
+		printf (" %s\n", n->name);
+
+		if (n->node_head)
+			dump_node (n->node_head, nest + 1);
+	}
+}
+
+struct fdt_node *_fdt_get_node (struct fdt_node *, char *);
+void fdt_conceal_node (struct fdt_node *);
+Ensure (FDT, conceal_node)
+{
+	struct fdt *fdt = fdt_parse (
+		(struct fdt_header *)get_dtb_base (qemu_dtb_filename));
+
+	dump_node (fdt->root_node, 0);
+
+	struct fdt_node *node = _fdt_get_node (fdt->root_node, "pl011@9000000");
+	assert_that (node, is_non_null);
+
+	fdt_conceal_node (node);
+	dump_node (fdt->root_node, 0);
+
+	node = _fdt_get_node (fdt->root_node, "pl011@9000000");
+	assert_that (node, is_null);
+}
+
 uint32_t swap_u32 (uint32_t);
 
 void fdt_load_to (struct fdt *, void **);
@@ -230,18 +263,20 @@ int
 main (int argc, char **argv)
 {
 	TestSuite *suite = create_test_suite ();
-	add_test_with_context (suite, FDT, get_address);
-	add_test_with_context (suite, FDT, setup_struct);
+	// add_test_with_context (suite, FDT, get_address);
+	// add_test_with_context (suite, FDT, setup_struct);
 
-	add_test_with_context (suite, FDT, structblock_size_0);
-	add_test_with_context (suite, FDT, structblock_size_1);
-	add_test_with_context (suite, FDT, structblock_size_all);
+	// add_test_with_context (suite, FDT, structblock_size_0);
+	// add_test_with_context (suite, FDT, structblock_size_1);
+	// add_test_with_context (suite, FDT, structblock_size_all);
 
-	add_test_with_context (suite, FDT, stringblock_size_1);
-	add_test_with_context (suite, FDT, stringblock_size_all);
+	// add_test_with_context (suite, FDT, stringblock_size_1);
+	// add_test_with_context (suite, FDT, stringblock_size_all);
 
-	add_test_with_context (suite, FDT, fdt_load_0);
-	add_test_with_context (suite, FDT, fdt_load_1);
+	// add_test_with_context (suite, FDT, fdt_load_0);
+	// add_test_with_context (suite, FDT, fdt_load_1);
+
+	add_test_with_context (suite, FDT, conceal_node);
 
 	return run_test_suite (suite, create_text_reporter ());
 }
