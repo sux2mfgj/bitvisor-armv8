@@ -28,6 +28,20 @@ swap_u32 (u32 val)
 	return (val << 16) | (val >> 16);
 }
 
+test_static void
+dump_node (struct fdt_node *node, int nest)
+{
+	for (struct fdt_node *n = node; n; n = n->next) {
+		for (int i = 0; i < nest; ++i) {
+			printf ("--");
+		}
+		printf (" %s\n", n->name);
+
+		if (n->node_head)
+			dump_node (n->node_head, nest + 1);
+	}
+}
+
 #define FDT_ADDR_CELLS_DEFAULT 2
 #define FDT_SIZE_CELLS_DEFAULT 1
 

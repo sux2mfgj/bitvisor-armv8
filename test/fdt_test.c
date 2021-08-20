@@ -171,19 +171,7 @@ Ensure (FDT, stringblock_size_1)
 	}
 }
 
-static void
-dump_node (struct fdt_node *node, int nest)
-{
-	for (struct fdt_node *n = node; n; n = n->next) {
-		for (int i = 0; i < nest; ++i) {
-			printf ("--");
-		}
-		printf (" %s\n", n->name);
-
-		if (n->node_head)
-			dump_node (n->node_head, nest + 1);
-	}
-}
+void dump_node (struct fdt_node *node, int nest);
 
 struct fdt_node *_fdt_get_node (struct fdt_node *, char *);
 void fdt_conceal_node (struct fdt_node *);
