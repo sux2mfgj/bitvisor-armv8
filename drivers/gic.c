@@ -5,6 +5,7 @@
 #include <core/mm.h>
 #include <core/panic.h>
 #include <driver/gic.h>
+#include <driver/vgic.h>
 
 // CPU Interface register map
 enum {
@@ -126,6 +127,8 @@ gic_fdt_init (struct fdt_node *node)
 	gic->dist_mmio_base = gicd_base;
 
 	gic_init_controller (gic);
+
+	vgic_init (node);
 
 	int_register_irqc (&gic_irqc);
 }

@@ -1,6 +1,7 @@
 #include <core.h>
 #include <core/fdt.h>
 #include <core/mm.h>
+#include <core/printf.h>
 #include <driver/gic.h>
 
 enum {
@@ -130,7 +131,7 @@ vgic_setup_list_register (struct vgic_dev *dev, int lr_index, u16 vid, u16 pid,
 }
 
 void
-init_vgic (struct fdt_node *node)
+vgic_init (struct fdt_node *node)
 {
 	int ret;
 	u64 gich_base, gicv_base;
@@ -144,6 +145,8 @@ init_vgic (struct fdt_node *node)
 				 &gicv_base);
 	if (ret)
 		panic ("oh no");
+
+    printf ("initalize vgic: gich 0x%llx, gicv 0x%llx\n", gich_base, gicv_base);
 
 	struct vgic_dev *dev = alloc (sizeof (struct vgic_dev));
 	dev->virt_mmio_base = gicv_base;
