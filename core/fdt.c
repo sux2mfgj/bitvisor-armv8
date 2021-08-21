@@ -235,7 +235,12 @@ fdt_parse_prop_value (struct fdt_prop *prop, void *data,
 		}
 		entry++;
 	}
-	panic ("%s: unknown prop found: %s\n", __func__, prop->name);
+#ifdef CONFIG_SKIP_UNKNOWN_DT_PROP
+	printf ("unknown prop found but, skip it: %s in %s node\n", prop->name,
+		parent->name);
+#else
+	panic ("unknown prop found: %s in %s node\n", prop->name, parent->name);
+#endif
 	return;
 
 found:

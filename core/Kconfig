@@ -2,3 +2,8 @@
 config DEVICE_TREE
     bool "device tree parser"
     default n
+
+config SKIP_UNKNOWN_DT_PROP
+    bool "skip when found unknown device tree property"
+    default y
+    depends on DEVICE_TREE
