@@ -170,25 +170,69 @@ fdt_prop_load_clock_freq (struct fdt_prop *prop, void **base)
 	}
 }
 
+static u64
+fdt_parse_variable (int size, void *data)
+{
+	u64 value = 0;
+	switch (size) {
+	case 2:
+		value = swap_u32 (*(u32 *)data);
+		data += sizeof (u32);
+	case 1:
+		value <<= 32;
+		value |= swap_u32 (*(u32 *)data);
+		data += sizeof (u32);
+	case 0:
+		break;
+	default:
+		panic ("%s: found unknown size", __func__);
+	}
+
+	return value;
+}
+
+static u64
+fdt_parse_address (struct fdt_node *parent, void *data)
+{
+	return fdt_parse_variable (parent->address_cells, data);
+}
+
+static u64
+fdt_parse_size (struct fdt_node *parent, void *data)
+{
+	return fdt_parse_variable (parent->size_cells, data);
+}
+
 static void
-fdt_parse_range (struct fdt_prop *prop, void *data)
+fdt_parse_ranges (struct fdt_prop *prop, void *data)
 {
 	if (prop->len == 0) {
 		prop->type = FDT_PROP_EMPTY;
 		return;
 	}
 
-	not_yet_implemented ();
+	prop->type = FDT_PROP_ENC_ARY;
+	prop->base = data;
+
+	// "ranges" indicates a mapping or translation between the address space
+	// of child and parent buses. <child-bus-address, parent-bus-address,
+	// length>
+	// u64 child_buf_address = fdt_parse_address (prop->parent, data);
+	// u64 parent_bus_address = fdt_parse_address (prop->parent, data);
+	// u64 length = fdt_parse_size(prop->parent, data);
+	// TODO
 }
 
 static void
-fdt_load_prop_range (struct fdt_prop *prop, void **base)
+fdt_parse_dummy (struct fdt_prop *prop, void *base)
 {
-	if (prop->len == 0) {
-		return;
-	}
-
-	not_yet_implemented ();
+	prop->type = FDT_PROP_ENC_ARY;
+	prop->base = base;
+}
+static void
+fdt_load_dummy (struct fdt_prop *prop, void **base)
+{
+	memcpy (*base, prop->base, prop->len);
 }
 
 static struct prop_table_entry {
@@ -197,12 +241,13 @@ static struct prop_table_entry {
 	void (*parse) (struct fdt_prop *prop, void *data);
 	void (*load) (struct fdt_prop *prop, void **base);
 } prop_table[] = {
-	// memory node
-	{"device_type", FDT_PROP_STRING},
+	// general props
 	{"reg", FDT_PROP_ARRAY},
 	{"compatible", FDT_PROP_STR_LIST},
 	{"#size-cells", FDT_PROP_U32},
 	{"#address-cells", FDT_PROP_U32},
+	// memory node
+	{"device_type", FDT_PROP_STRING},
 	{"interrupt-parent", FDT_PROP_PHANDLE},
 	{"clock-names", FDT_PROP_STR_LIST},
 	{"clocks", FDT_PROP_PH_LIST},
@@ -212,13 +257,27 @@ static struct prop_table_entry {
 	{"clock-frequency", FDT_PROP_ENC_ARY, fdt_parse_clock_freq,
 	 fdt_prop_load_clock_freq},
 	{"#clock-cells", FDT_PROP_U32},
-	{"ranges", FDT_PROP_ENC_ARY, fdt_parse_range, fdt_load_prop_range},
+	{"ranges", FDT_PROP_ENC_ARY, fdt_parse_ranges, fdt_load_dummy},
 	{"interrupt-controller", FDT_PROP_EMPTY},
 	{"#interrupt-cells", FDT_PROP_U32},
 	{"always-on", FDT_PROP_EMPTY},
 	{"stdout-path", FDT_PROP_STRING},
 	{"stdin-path", FDT_PROP_STRING},
 	{"bootargs", FDT_PROP_STRING},
+	// psci node
+	{"migrate", FDT_PROP_U32},
+	{"cpu_on", FDT_PROP_U32},
+	{"cpu_off", FDT_PROP_U32},
+	{"cpu_suspend", FDT_PROP_U32},
+	{"method", FDT_PROP_STRING},
+	// fw-cfg
+	{"dma-coherent", FDT_PROP_EMPTY},
+	// pcie
+	{"interrupt-map-mask", FDT_PROP_ENC_ARY, fdt_parse_dummy,
+	 fdt_load_dummy},
+	{"interrupt-map", FDT_PROP_ENC_ARY, fdt_parse_dummy, fdt_load_dummy},
+	{"msi-parent", FDT_PROP_ENC_ARY, fdt_parse_dummy, fdt_load_dummy},
+	{"bus-range", FDT_PROP_U32_LIST},
 	{},
 };
 
