@@ -646,9 +646,12 @@ fdt_set_reg_value (struct fdt_prop *prop, int index, enum FDT_REG_TYPE type,
 	void *base = prop->base + sizeof (u32) * address_cells * index +
 		     sizeof (u32) * size_cells * index;
 
-	not_yet_implemented ();
+	if (type == FDT_REG_SIZE)
+		base += sizeof (u32) * address_cells;
 
-	return 1;
+	fdt_load_variable (size_cells, base, value);
+
+	return 0;
 }
 
 int
