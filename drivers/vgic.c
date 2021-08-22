@@ -135,6 +135,7 @@ vgic_init (struct fdt_node *node)
 {
 	int ret;
 	u64 gich_base, gicv_base;
+	u64 gicv_size;
 
 	ret = fdt_get_reg_value (node, FDT_REG_INDEX_GIC_GICH, FDT_REG_ADDRESS,
 				 &gich_base);
@@ -146,7 +147,13 @@ vgic_init (struct fdt_node *node)
 	if (ret)
 		panic ("oh no");
 
-    printf ("initalize vgic: gich 0x%llx, gicv 0x%llx\n", gich_base, gicv_base);
+	ret = fdt_get_reg_value (node, FDT_REG_INDEX_GIC_GICV, FDT_REG_SIZE,
+				 &gicv_size);
+	if (ret)
+		panic ("oh no");
+
+	printf ("initalize vgic: gich 0x%llx, gicv 0x%llx\n", gich_base,
+		gicv_base);
 
 	struct vgic_dev *dev = alloc (sizeof (struct vgic_dev));
 	dev->virt_mmio_base = gicv_base;
@@ -160,6 +167,22 @@ vgic_init (struct fdt_node *node)
 		vgic_setup_list_register (dev, 0, 0, 0, 0,
 					  VGIC_INT_STATE_INVALID, 0, false);
 	}
+
+	// update fdt entry for guest
+	struct fdt_prop *reg_prop = alloc (sizeof (struct fdt_prop));
+	memset (reg_prop, 0x0, sizeof *reg_prop);
+
+	u64 guest_gicd_address, guest_gicd_size;
+	vgic_init_distributer (&guest_gicd_address, &guest_gicd_size);
+
+	// 2 means cpu interface and distributer interface
+#define GUEST_GIC_INTERFACES 2
+	fdt_init_reg_prop (node, reg_prop, GUEST_GIC_INTERFACES);
+	fdt_fill_reg (reg_prop, FDT_REG_INDEX_GIC_GICD, guest_gicd_address,
+		      guest_gicd_size);
+	fdt_fill_reg (reg_prop, FDT_REG_INDEX_GIC_GICC, gicv_base, gicv_size);
+
+	fdt_update_reg (node, reg_prop);
 
 	vgic_enable (dev);
 }
