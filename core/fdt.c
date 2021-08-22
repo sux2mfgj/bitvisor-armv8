@@ -602,7 +602,11 @@ test_static struct fdt_node *
 _fdt_get_node (struct fdt_node *parent, char *name)
 {
 	for (struct fdt_node *n = parent; n; n = n->next) {
-		if (!strcmp (n->name, name))
+		int n_name_len = 0;
+		for (char *s = n->name; *s != '@';
+		     ++s, ++n_name_len) {
+		}
+		if (!memcmp (n->name, name, n_name_len))
 			return n;
 
 		if (n->node_head)
@@ -726,6 +730,7 @@ fdt_update_reg (struct fdt_node *node, struct fdt_prop *new)
 void
 fdt_conceal_node (struct fdt_node *node)
 {
+	printf ("conceal node: %s\n", node->name);
 	struct fdt_node *prev = node->prev;
 	struct fdt_node *next = node->next;
 	if (prev) {
@@ -1001,6 +1006,15 @@ fdt_load_to (struct fdt *fdt, void *dest)
 static void
 fdt_load_for_guest (void)
 {
+	// conceal virtio-mmio nodes for qemu
+	while (1) {
+		struct fdt_node *node = fdt_get_node ("virtio_mmio");
+		if (!node)
+			break;
+
+		fdt_conceal_node (node);
+	}
+
 	dump_node (g_fdt->root_node);
 	fdt_load_to (g_fdt, get_fdt_base ());
 }

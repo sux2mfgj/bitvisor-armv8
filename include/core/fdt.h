@@ -25,7 +25,7 @@ enum fdt_node_type {
 };
 
 struct fdt_prop {
-	struct fdt_prop *next;
+	struct fdt_prop *prev, *next;
 	struct fdt_node *parent;
 	char *name;
 	u32 name_offset;
@@ -96,5 +96,7 @@ struct fdt {
 
 int fdt_get_reg_value (struct fdt_node *node, int index, enum FDT_REG_TYPE type,
 		       u64 *value);
+int fdt_update_reg (struct fdt_node *node, struct fdt_prop *new);
+void fdt_conceal_node (struct fdt_node *node);
 
 #endif
