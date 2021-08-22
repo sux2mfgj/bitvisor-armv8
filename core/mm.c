@@ -30,6 +30,7 @@
 #include "mm.h"
 
 #include <core.h>
+#include <core/fdt.h>
 
 #include "assert.h"
 #include "initfunc.h"
@@ -581,4 +582,52 @@ mm_init_global (void)
 	}
 }
 
+/* mm_concleal_bitvisor_mem: conceal bitvisor used memory on device tree
+ * This function depends fdt subsytem. it is initalized at driver0.
+ */
+static void
+mm_concleal_bitvisor_mem (void)
+{
+	struct fdt_node *mnode = fdt_get_node ("memory");
+	struct fdt_prop *reg_prop = fdt_get_prop (mnode, "reg");
+
+	if (!reg_prop)
+		panic ("cannot found memory node");
+
+	int addr_cells = fdt_get_addr_cells (mnode);
+	int size_cells = fdt_get_size_cells (mnode);
+	printf ("cells addr: %d size: %d\n", addr_cells, size_cells);
+	int one_entry_len = sizeof (u32) * (addr_cells + size_cells);
+
+	for (int i = 0; i < (reg_prop->len / one_entry_len); ++i) {
+		u64 address, size;
+		int ret;
+
+		ret = fdt_get_reg_value (mnode, i, FDT_REG_ADDRESS, &address);
+		if (ret)
+			panic ("??");
+
+		ret = fdt_get_reg_value (mnode, i, FDT_REG_SIZE, &size);
+		if (ret)
+			panic ("??");
+
+		if (address <= (u64)head &&
+		    (u64)head + VMMSIZE_ALL <= (address + size)) {
+			if (head + VMMSIZE_ALL > address + size) {
+				not_yet_implemented ();
+			} else {
+				u64 new_size = head - address;
+				fdt_set_reg_value (mnode, i, FDT_REG_SIZE,
+						   new_size);
+				printf ("shrink memory range for guest\n"
+					"    orig:\t0x%llx to 0x%llx\n"
+					"    new: \t0x%llx to 0x%llx\n",
+					address, size, address, new_size);
+				break;
+			}
+		}
+	}
+}
+
 INITFUNC ("global3", mm_init_global);
+INITFUNC ("driver1", mm_concleal_bitvisor_mem);
