@@ -603,8 +603,7 @@ _fdt_get_node (struct fdt_node *parent, char *name)
 {
 	for (struct fdt_node *n = parent; n; n = n->next) {
 		int n_name_len = 0;
-		for (char *s = n->name; *s != '@';
-		     ++s, ++n_name_len) {
+		for (char *s = n->name; *s != '@'; ++s, ++n_name_len) {
 		}
 		if (!memcmp (n->name, name, n_name_len))
 			return n;
@@ -673,7 +672,7 @@ fdt_get_reg_value (struct fdt_node *node, int index, enum FDT_REG_TYPE type,
 		     sizeof (u32) * size_cells * index;
 
 	// check a range of the data
-	if (reg_prop->base + reg_prop->len <= base) {
+	if (reg_prop->base + reg_prop->len < base) {
 		return -1;
 	}
 
