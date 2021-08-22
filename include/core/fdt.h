@@ -96,6 +96,11 @@ struct fdt {
 
 int fdt_get_reg_value (struct fdt_node *node, int index, enum FDT_REG_TYPE type,
 		       u64 *value);
+int fdt_set_reg_value (struct fdt_prop *prop, int index, enum FDT_REG_TYPE type,
+		       u64 value);
+u32 fdt_get_addr_cells (struct fdt_node *node);
+u32 fdt_get_size_cells (struct fdt_node *node);
+
 int fdt_update_reg (struct fdt_node *node, struct fdt_prop *new);
 void fdt_conceal_node (struct fdt_node *node);
 

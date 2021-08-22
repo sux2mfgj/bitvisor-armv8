@@ -65,7 +65,7 @@ fdt_load_variable (int size, void *base, u64 data)
 	}
 }
 
-static u32
+u32
 fdt_get_addr_cells (struct fdt_node *node)
 {
 	if (node->cells_type & CELLS_ADDR)
@@ -74,7 +74,7 @@ fdt_get_addr_cells (struct fdt_node *node)
 		return fdt_get_addr_cells (node->parent);
 }
 
-static u32
+u32
 fdt_get_size_cells (struct fdt_node *node)
 {
 	if (node->cells_type & CELLS_SIZE)
@@ -635,7 +635,7 @@ fdt_get_prop (struct fdt_node *node, char *name)
 
 int
 fdt_set_reg_value (struct fdt_prop *prop, int index, enum FDT_REG_TYPE type,
-		   u64 *value)
+		   u64 value)
 {
 	u64 address = 0;
 	u64 size = 0;
