@@ -28,18 +28,119 @@ swap_u32 (u32 val)
 	return (val << 16) | (val >> 16);
 }
 
-test_static void
-dump_node (struct fdt_node *node, int nest)
+static u64
+fdt_parse_variable (int size, void *data)
 {
+	u64 value = 0;
+	switch (size) {
+	case 2:
+		value = swap_u32 (*(u32 *)data);
+		data += sizeof (u32);
+	case 1:
+		value <<= 32;
+		value |= swap_u32 (*(u32 *)data);
+		data += sizeof (u32);
+	case 0:
+		break;
+	default:
+		panic ("%s: found unknown size", __func__);
+	}
+
+	return value;
+}
+
+static void
+fdt_load_variable (int size, void *base, u64 data)
+{
+	switch (size) {
+	case 2:
+		*(u32 *)base = swap_u32 ((u32)(data >> 32));
+		base += sizeof (u32);
+	case 1:
+		*(u32 *)base = swap_u32 ((u32)data);
+	case 0:
+		break;
+	default:
+		panic ("%s: found unknown size", __func__);
+	}
+}
+
+static u32
+fdt_get_addr_cells (struct fdt_node *node)
+{
+	if (node->cells_type & CELLS_ADDR)
+		return node->address_cells;
+	else
+		return fdt_get_addr_cells (node->parent);
+}
+
+static u32
+fdt_get_size_cells (struct fdt_node *node)
+{
+	if (node->cells_type & CELLS_SIZE)
+		return node->size_cells;
+	else
+		return fdt_get_size_cells (node->parent);
+}
+
+static u64
+fdt_parse_address (struct fdt_node *parent, void *data)
+{
+	return fdt_parse_variable (fdt_get_addr_cells (parent), data);
+}
+
+static u64
+fdt_parse_size (struct fdt_node *parent, void *data)
+{
+	return fdt_parse_variable (fdt_get_size_cells (parent), data);
+}
+
+static void
+fdt_dump_regs (struct fdt_prop *p)
+{
+	// dump reg
+	int addr_cells = fdt_get_addr_cells (p->parent);
+	int size_cells = fdt_get_size_cells (p->parent);
+	printf ("cells addr: %d size: %d\n", addr_cells, size_cells);
+	int one_entry_len = sizeof (u32) * (addr_cells + size_cells);
+	for (int i = 0; i < p->len / one_entry_len; ++i) {
+		printf ("addr 0x%llx size 0x%llx\n",
+			fdt_parse_address (p->parent,
+					   p->base + i * one_entry_len),
+			fdt_parse_size (p->parent,
+					p->base + i * one_entry_len));
+	}
+}
+
+test_static void
+_dump_node (struct fdt_node *node, int nest)
+{
+	char buf[128];
 	for (struct fdt_node *n = node; n; n = n->next) {
-		for (int i = 0; i < nest; ++i) {
-			printf ("--");
+		char *b = buf;
+		for (int i = 0; i < nest * 2; ++i, ++b) {
+			*b = '-';
 		}
-		printf (" %s\n", n->name);
+		*b = '\0';
+		printf ("%s %s\n", buf, n->name);
+
+		for (struct fdt_prop *p = n->prop_head; p; p = p->next) {
+			printf ("%s  %s\n", buf, p->name);
+			if (!memcmp ("reg", p->name, sizeof "reg")) {
+				fdt_dump_regs (p);
+			}
+		}
 
 		if (n->node_head)
-			dump_node (n->node_head, nest + 1);
+			_dump_node (n->node_head, nest + 1);
 	}
+}
+
+test_static void
+dump_node (struct fdt_node *node)
+{
+	printf ("dump device tree\n");
+	_dump_node (node, 0);
 }
 
 #define FDT_ADDR_CELLS_DEFAULT 2
@@ -170,37 +271,32 @@ fdt_prop_load_clock_freq (struct fdt_prop *prop, void **base)
 	}
 }
 
-static u64
-fdt_parse_variable (int size, void *data)
+void
+fdt_init_reg_prop (struct fdt_node *parent, struct fdt_prop *prop, int regs)
 {
-	u64 value = 0;
-	switch (size) {
-	case 2:
-		value = swap_u32 (*(u32 *)data);
-		data += sizeof (u32);
-	case 1:
-		value <<= 32;
-		value |= swap_u32 (*(u32 *)data);
-		data += sizeof (u32);
-	case 0:
-		break;
-	default:
-		panic ("%s: found unknown size", __func__);
-	}
-
-	return value;
+	prop->parent = parent;
+	int len = sizeof (u32) * (parent->address_cells + parent->size_cells) *
+		  regs;
+	prop->base = alloc (len);
+#define REG_STRING "reg"
+	prop->name = alloc (sizeof REG_STRING);
+	memcpy (prop->name, REG_STRING, sizeof REG_STRING);
+	prop->name_offset = 0;
+	prop->type = FDT_PROP_ARRAY;
+	prop->len = len;
 }
 
-static u64
-fdt_parse_address (struct fdt_node *parent, void *data)
+void
+fdt_fill_reg (struct fdt_prop *prop, int index, u64 address, u64 size)
 {
-	return fdt_parse_variable (parent->address_cells, data);
-}
+	int addr_cells = fdt_get_addr_cells (prop->parent);
+	int size_cells = fdt_get_size_cells (prop->parent);
+	int offset = sizeof (u32) * (addr_cells + size_cells) * index;
+	void *addr_base = prop->base + offset;
+	void *size_base = addr_base + sizeof (u32) * addr_cells;
 
-static u64
-fdt_parse_size (struct fdt_node *parent, void *data)
-{
-	return fdt_parse_variable (parent->size_cells, data);
+	fdt_load_variable (addr_cells, addr_base, address);
+	fdt_load_variable (size_cells, size_base, size);
 }
 
 static void
@@ -422,9 +518,13 @@ fdt_parse (struct fdt_header *header)
 			struct fdt_prop *prop = fdt_parse_prop (fdt, parent);
 			if (parent->prop_head) {
 				prop->next = parent->prop_head->next;
+				parent->prop_head->next->prev = prop;
 				parent->prop_head->next = prop;
+				prop->prev = parent->prop_head;
 			} else {
 				parent->prop_head = prop;
+				prop->next = NULL;
+				prop->prev = NULL;
 			}
 			break;
 		}
@@ -529,81 +629,98 @@ fdt_get_prop (struct fdt_node *node, char *name)
 	return NULL;
 }
 
-static u32
-fdt_get_addr_cells (struct fdt_node *node)
+int
+fdt_set_reg_value (struct fdt_prop *prop, int index, enum FDT_REG_TYPE type,
+		   u64 *value)
 {
-	if (node->cells_type & CELLS_ADDR)
-		return node->address_cells;
-	else
-		return fdt_get_addr_cells (node->parent);
-}
+	u64 address = 0;
+	u64 size = 0;
+	u32 address_cells = fdt_get_addr_cells (prop->parent);
+	u32 size_cells = fdt_get_size_cells (prop->parent);
 
-static u32
-fdt_get_size_cells (struct fdt_node *node)
-{
-	if (node->cells_type & CELLS_SIZE)
-		return node->size_cells;
-	else
-		return fdt_get_size_cells (node->parent);
+	// TODO check len
+	void *base = prop->base + sizeof (u32) * address_cells * index +
+		     sizeof (u32) * size_cells * index;
+
+	not_yet_implemented ();
+
+	return 1;
 }
 
 int
 fdt_get_reg_value (struct fdt_node *node, int index, enum FDT_REG_TYPE type,
 		   u64 *value)
 {
-	for (struct fdt_prop *p = node->prop_head; p; p = p->next) {
-		if (!strcmp (p->name, "reg")) {
-			ASSERT (p->type == FDT_PROP_ARRAY);
+	struct fdt_prop *reg_prop = fdt_get_prop (node, "reg");
+	if (!reg_prop)
+		return -1;
 
-			u64 address = 0;
-			u64 size = 0;
-			u32 address_cells = fdt_get_addr_cells (node);
-			u32 size_cells = fdt_get_size_cells (node);
+	ASSERT (reg_prop->type == FDT_PROP_ARRAY);
 
-			void *base = p->base +
-				     sizeof (u32) * address_cells * index +
-				     sizeof (u32) * size_cells * index;
+	u64 address = 0;
+	u64 size = 0;
+	u32 address_cells = fdt_get_addr_cells (node);
+	u32 size_cells = fdt_get_size_cells (node);
 
-			// check a range of the data
-			if (p->base + p->len <= base) {
-				return -1;
-			}
+	void *base = reg_prop->base + sizeof (u32) * address_cells * index +
+		     sizeof (u32) * size_cells * index;
 
-			if (address_cells >= 1) {
-				address = swap_u32 (*(u32 *)base);
-				base += sizeof (u32);
-			}
+	// check a range of the data
+	if (reg_prop->base + reg_prop->len <= base) {
+		return -1;
+	}
 
-			if (address_cells == 2) {
-				address =
-					address << 32 | swap_u32 (*(u32 *)base);
-				base += sizeof (u32);
-			}
+	if (address_cells >= 1) {
+		address = swap_u32 (*(u32 *)base);
+		base += sizeof (u32);
+	}
 
-			if (size_cells >= 1) {
-				size = swap_u32 (*(u32 *)base);
-				base += sizeof (u32);
-			}
+	if (address_cells == 2) {
+		address = address << 32 | swap_u32 (*(u32 *)base);
+		base += sizeof (u32);
+	}
 
-			if (size_cells == 2) {
-				size = size << 32 | swap_u32 (*(u32 *)base);
-				base += sizeof (u32);
-			}
+	if (size_cells >= 1) {
+		size = swap_u32 (*(u32 *)base);
+		base += sizeof (u32);
+	}
 
-			switch (type) {
-			case FDT_REG_ADDRESS:
-				*value = address;
-				return 0;
-			case FDT_REG_SIZE:
-				*value = size;
-				return 0;
-			}
+	if (size_cells == 2) {
+		size = size << 32 | swap_u32 (*(u32 *)base);
+		base += sizeof (u32);
+	}
 
-			return -1;
-		}
+	switch (type) {
+	case FDT_REG_ADDRESS:
+		*value = address;
+		return 0;
+	case FDT_REG_SIZE:
+		*value = size;
+		return 0;
 	}
 
 	return -1;
+}
+
+int
+fdt_update_reg (struct fdt_node *node, struct fdt_prop *new)
+{
+	struct fdt_prop *reg_prop = fdt_get_prop (node, "reg");
+	if (!reg_prop)
+		return -1;
+
+	new->parent = reg_prop->parent;
+
+	reg_prop->prev->next = new;
+	reg_prop->next->prev = new;
+
+	new->prev = reg_prop->prev;
+	new->next = reg_prop->next;
+
+	// TODO
+	// free_prop(reg_prop);
+
+	return 0;
 }
 
 void
@@ -841,7 +958,6 @@ static void
 fdt_load_stringblock (void **base, struct string_list *list)
 {
 	for (struct string_list *c = list; c; c = c->next) {
-		printf ("%s %s 0x%x\n", __func__, c->str, c->offset);
 		memcpy (*base + c->offset, c->str, strlen (c->str) + 1);
 	}
 }
@@ -885,6 +1001,7 @@ fdt_load_to (struct fdt *fdt, void *dest)
 static void
 fdt_load_for_guest (void)
 {
+	dump_node (g_fdt->root_node);
 	fdt_load_to (g_fdt, get_fdt_base ());
 }
 
