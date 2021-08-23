@@ -18,15 +18,6 @@
 void _context_switch (struct aarch64_context *prev,
 		      struct aarch64_context *next);
 
-#define ESR_EL2_ISS_OFFSET 0
-#define ESR_EL2_ISS_MASK (0x00ffffff)
-#define ESR_EL2_EL_OFFSET 25
-#define ESR_EL2_EL_MASK (0b1)
-#define ESR_EL2_EC_OFFSET 26
-#define ESR_EL2_EC_MASK 0b111111
-#define ESR_EL2_ISS2_OFFSET 32
-#define ESR_EL2_ISS2_MASK 0b11111
-
 enum inst_abort_ifsc {
 	INST_ABORT_IFSC_ASIZE_L0 = 0b000000,
 	INST_ABORT_IFSC_ASIZE_L1 = 0b000001,
@@ -166,14 +157,13 @@ arch64_vminit (void)
 
 	aarch64_paging_init ();
 
-	u64 tmp;
+	u64 tmp, stack;
+	alloc_page ((void **)&stack, NULL);
 #define SPSEL_ELX 0b1
 	tmp = SPSEL_ELX;
 	write_spsel (tmp);
 
-	alloc_page ((void **)&tmp, NULL);
-
-	asm volatile("mov sp, %[x]" ::[x] "r"(tmp + PAGESIZE));
+	asm volatile("mov sp, %[x]" ::[x] "r"(stack + PAGESIZE));
 
 	write_spsel (0);
 }

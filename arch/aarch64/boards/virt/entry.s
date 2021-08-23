@@ -8,6 +8,11 @@ entry:
     cmp x0, #0b1000
     b.ne unknown_el
 
+    mov x0, #0b1
+    msr spsel, x0
+    ldr x30, =tmp_stack
+    mov sp, x30
+
     mov x0, #0b0
     msr spsel, x0
     ldr x30, =start_stack
@@ -44,3 +49,6 @@ unknown_el:
     .align 12
     .space 0x1000
 start_stack:
+    .align 12
+    .space 0x1000
+tmp_stack:

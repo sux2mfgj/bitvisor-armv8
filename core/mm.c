@@ -629,5 +629,5 @@ mm_concleal_bitvisor_mem (void)
 	}
 }
 
-INITFUNC ("global3", mm_init_global);
+INITFUNC ("global2", mm_init_global);
 INITFUNC ("driver1", mm_concleal_bitvisor_mem);
