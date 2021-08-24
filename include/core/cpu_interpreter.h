@@ -27,21 +27,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CORE_CPU_INTERPRETER_H
-#define _CORE_CPU_INTERPRETER_H
+#ifndef __CORE_CPU_INTERPRETER_H
+#define __CORE_CPU_INTERPRETER_H
 
-#include "vmmerr.h"
+#include <core/vmmerr.h>
 
-enum cpumode {
-	CPUMODE_REAL,
-	CPUMODE_PROTECTED,
-};
-
-enum optype {
-	OPTYPE_16BIT,
-	OPTYPE_32BIT,
-	OPTYPE_64BIT,
-};
+//enum cpumode {
+//	CPUMODE_REAL,
+//	CPUMODE_PROTECTED,
+//};
+//
+//enum optype {
+//	OPTYPE_16BIT,
+//	OPTYPE_32BIT,
+//	OPTYPE_64BIT,
+//};
 
 enum vmmerr cpu_interpreter (void);
 

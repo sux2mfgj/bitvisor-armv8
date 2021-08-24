@@ -27,21 +27,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <core/cpu_interpreter.h>
+#include <core/initfunc.h>
 #include <core/mm.h>
 #include <core/mmio.h>
+#include <core/panic.h>
+#include <core/types.h>
+#include <core/vm.h>
 
-#include "asm.h"
+//#include "asm.h"
 #include "assert.h"
-#include "constants.h"
-#include "cpu_interpreter.h"
-#include "cpu_mmu.h"
+//#include "cpu_mmu.h"
 #include "current.h"
 #include "initfunc.h"
-#include "panic.h"
 #include "printf.h"
-#include "spinlock.h"
+//#include "spinlock.h"
 #include "string.h"
-#include "vmmerr.h"
 
 struct call_flush_tlb_data {
 	struct vcpu *vcpu0;
@@ -87,148 +88,147 @@ rangecheck (struct mmio_handle *h, phys_t gphys, uint len, phys_t *gphys2,
 	return 1;
 }
 
-// static void
-// mmio_gphys_access (phys_t gphysaddr, bool wr, void *buf, uint len, u32 flags)
-//{
-//	void *p;
-//
-//	if (!len)
-//		return;
-//	p = mapmem_as (current->as, gphysaddr, len, (wr ? MAPMEM_WRITE : 0) |
-//		       flags);
-//	ASSERT (p);
-//	if (wr)
-//		memcpy (p, buf, len);
-//	else
-//		memcpy (buf, p, len);
-//	unmapmem (p, len);
-//}
-//
-// int
-// mmio_access_memory (phys_t gphysaddr, bool wr, void *buf, uint len, u32 f)
-//{
-//	struct mmio_list *p;
-//	struct mmio_handle *h;
-//	int i, j, r;
-//	phys_t gphys2;
-//	uint len2, tmp;
-//	u8 *q;
-//	struct {
-//		bool found;
-//		mmio_handler_t handler;
-//		void *data;
-//		phys_t gphys;
-//		bool wr;
-//		void *buf;
-//		uint len;
-//		u32 flags;
-//	} unlocked_handler;
-//
-//	unlocked_handler.found = false;
-//	if (gphysaddr <= 0xFFFFFFFFULL)
-//		i = gphysaddr >> 28;
-//	else
-//		i = 16;
-//	if (gphysaddr + len - 1 <= 0xFFFFFFFFULL)
-//		j = (gphysaddr + len - 1) >> 28;
-//	else
-//		j = 16;
-//	q = buf;
-//	r = 0;
-//	if (!len)
-//		goto out;
-//	for (; i <= j; i++) {
-//		LIST1_FOREACH (current->vcpu0->mmio.mmio[i], p) {
-//			h = p->handle;
-//			if (h->gphys >= gphysaddr + len)
-//				goto out;
-//			if (rangecheck (h, gphysaddr, len, &gphys2, &len2)) {
-//				r = 1;
-//				tmp = gphys2 - gphysaddr;
-//				mmio_gphys_access (gphysaddr, wr, q, tmp, f);
-//				gphysaddr += tmp;
-//				q += tmp;
-//				len -= tmp;
-//				if (h->unlocked_handler) {
-//					if (unlocked_handler.found)
-//						panic ("mmio_access_memory:"
-//						       " two unlocked handlers"
-//						       " in one access");
-//					unlocked_handler.handler = h->handler;
-//					unlocked_handler.data = h->data;
-//					unlocked_handler.gphys = gphysaddr;
-//					unlocked_handler.wr = wr;
-//					unlocked_handler.buf = q;
-//					unlocked_handler.len = len2;
-//					unlocked_handler.flags = f;
-//					unlocked_handler.found = true;
-//				} else if (!h->handler (h->data, gphysaddr, wr,
-//							q, len2, f)) {
-//					mmio_gphys_access (gphysaddr, wr, q,
-//							   len2, f);
-//				}
-//				gphysaddr += len2;
-//				q += len2;
-//				len -= len2;
-//				if (!len)
-//					goto out;
-//			}
-//		}
-//	}
-// out:
-//	if (r)
-//		mmio_gphys_access (gphysaddr, wr, q, len, f);
-//	if (unlocked_handler.found) {
-//		/* Unlocked handlers are called during unlocked state.
-//		 * They can call mmio_register(). */
-//		rw_spinlock_unlock_sh (&current->vcpu0->mmio.rwlock);
-//		/* The mmio_list may be modified here. Unlocked
-//		 * handlers should take care of it. */
-//		if (!unlocked_handler.handler (unlocked_handler.data,
-//					       unlocked_handler.gphys,
-//					       unlocked_handler.wr,
-//					       unlocked_handler.buf,
-//					       unlocked_handler.len,
-//					       unlocked_handler.flags))
-//			mmio_gphys_access (unlocked_handler.gphys,
-//					   unlocked_handler.wr,
-//					   unlocked_handler.buf,
-//					   unlocked_handler.len,
-//					   unlocked_handler.flags);
-//		/* Lock again for mmio_unlock(). */
-//		rw_spinlock_lock_sh (&current->vcpu0->mmio.rwlock);
-//	}
-//	return r;
-//}
+static void
+mmio_gphys_access (phys_t gphysaddr, bool wr, void *buf, uint len, u32 flags)
+{
+	void *p;
 
-// int
-// mmio_access_page (phys_t gphysaddr, bool emulation)
-//{
-//	enum vmmerr e;
-//	struct mmio_list *p;
-//	struct mmio_handle *h;
-//	int i;
-//
-//	gphysaddr &= ~PAGESIZE_MASK;
-//	if (gphysaddr <= 0xFFFFFFFFULL)
-//		i = gphysaddr >> 28;
-//	else
-//		i = 16;
-//	LIST1_FOREACH (current->vcpu0->mmio.mmio[i], p) {
-//		h = p->handle;
-//		if (h->gphys >= gphysaddr + PAGESIZE)
-//			break;
-//		if (rangecheck (h, gphysaddr, PAGESIZE, NULL, NULL)) {
-//			if (!emulation)
-//				return 1;
-//			e = cpu_interpreter ();
-//			if (e == VMMERR_SUCCESS)
-//				return 1;
-//			panic ("Fatal error: MMIO access error %d", e);
-//		}
-//	}
-//	return 0;
-//}
+	if (!len)
+		return;
+	p = vm_mapmem (gphysaddr, len, (wr ? MAPMEM_WRITE : 0) | flags);
+	ASSERT (p);
+	if (wr)
+		memcpy (p, buf, len);
+	else
+		memcpy (buf, p, len);
+	vm_unmapmem (p, len);
+}
+
+int
+mmio_access_memory (phys_t gphysaddr, bool wr, void *buf, uint len, u32 f)
+{
+	struct mmio_list *p;
+	struct mmio_handle *h;
+	int i, j, r;
+	phys_t gphys2;
+	uint len2, tmp;
+	u8 *q;
+	struct {
+		bool found;
+		mmio_handler_t handler;
+		void *data;
+		phys_t gphys;
+		bool wr;
+		void *buf;
+		uint len;
+		u32 flags;
+	} unlocked_handler;
+
+	unlocked_handler.found = false;
+	if (gphysaddr <= 0xFFFFFFFFULL)
+		i = gphysaddr >> 28;
+	else
+		i = 16;
+	if (gphysaddr + len - 1 <= 0xFFFFFFFFULL)
+		j = (gphysaddr + len - 1) >> 28;
+	else
+		j = 16;
+	q = buf;
+	r = 0;
+	if (!len)
+		goto out;
+	for (; i <= j; i++) {
+		LIST1_FOREACH (current->vcpu0->mmio.mmio[i], p)
+		{
+			h = p->handle;
+			if (h->gphys >= gphysaddr + len)
+				goto out;
+			if (rangecheck (h, gphysaddr, len, &gphys2, &len2)) {
+				r = 1;
+				tmp = gphys2 - gphysaddr;
+				mmio_gphys_access (gphysaddr, wr, q, tmp, f);
+				gphysaddr += tmp;
+				q += tmp;
+				len -= tmp;
+				if (h->unlocked_handler) {
+					if (unlocked_handler.found)
+						panic ("mmio_access_memory:"
+						       " two unlocked handlers"
+						       " in one access");
+					unlocked_handler.handler = h->handler;
+					unlocked_handler.data = h->data;
+					unlocked_handler.gphys = gphysaddr;
+					unlocked_handler.wr = wr;
+					unlocked_handler.buf = q;
+					unlocked_handler.len = len2;
+					unlocked_handler.flags = f;
+					unlocked_handler.found = true;
+				} else if (!h->handler (h->data, gphysaddr, wr,
+							q, len2, f)) {
+					mmio_gphys_access (gphysaddr, wr, q,
+							   len2, f);
+				}
+				gphysaddr += len2;
+				q += len2;
+				len -= len2;
+				if (!len)
+					goto out;
+			}
+		}
+	}
+out:
+	if (r)
+		mmio_gphys_access (gphysaddr, wr, q, len, f);
+	if (unlocked_handler.found) {
+		/* Unlocked handlers are called during unlocked state.
+		 * They can call mmio_register(). */
+		// rw_spinlock_unlock_sh (&current->vcpu0->mmio.rwlock);
+		/* The mmio_list may be modified here. Unlocked
+		 * handlers should take care of it. */
+		if (!unlocked_handler.handler (
+			    unlocked_handler.data, unlocked_handler.gphys,
+			    unlocked_handler.wr, unlocked_handler.buf,
+			    unlocked_handler.len, unlocked_handler.flags))
+			mmio_gphys_access (
+				unlocked_handler.gphys, unlocked_handler.wr,
+				unlocked_handler.buf, unlocked_handler.len,
+				unlocked_handler.flags);
+		/* Lock again for mmio_unlock(). */
+		// rw_spinlock_lock_sh (&current->vcpu0->mmio.rwlock);
+	}
+	return r;
+}
+
+int
+mmio_access_page (phys_t gphysaddr, bool emulation)
+{
+	enum vmmerr e;
+	struct mmio_list *p;
+	struct mmio_handle *h;
+	int i;
+
+	gphysaddr &= ~PAGESIZE_MASK;
+	if (gphysaddr <= 0xFFFFFFFFULL)
+		i = gphysaddr >> 28;
+	else
+		i = 16;
+	LIST1_FOREACH (current->vcpu0->mmio.mmio[i], p)
+	{
+		h = p->handle;
+		if (h->gphys >= gphysaddr + PAGESIZE)
+			break;
+		if (rangecheck (h, gphysaddr, PAGESIZE, NULL, NULL)) {
+			if (!emulation)
+				return 1;
+			e = cpu_interpreter ();
+			if (e == VMMERR_SUCCESS)
+				return 1;
+			panic ("Fatal error: MMIO access error %d", e);
+		}
+	}
+
+	return 0;
+}
 
 static void
 add (int i, void *handle)
@@ -343,7 +343,7 @@ mmio_register_internal (phys_t gphys, uint len, mmio_handler_t handler,
 {
 	struct mmio_handle *p;
 
-	//rw_spinlock_lock_ex (&current->vcpu0->mmio.rwlock);
+	// rw_spinlock_lock_ex (&current->vcpu0->mmio.rwlock);
 	LIST1_FOREACH (current->vcpu0->mmio.handle, p)
 	{
 		if (rangecheck (p, gphys, len, NULL, NULL))
@@ -365,7 +365,7 @@ mmio_register_internal (phys_t gphys, uint len, mmio_handler_t handler,
 	LIST1_ADD (current->vcpu0->mmio.handle, p);
 	scan (gphys, len, add, p);
 ret:
-	//rw_spinlock_unlock_ex (&current->vcpu0->mmio.rwlock);
+	// rw_spinlock_unlock_ex (&current->vcpu0->mmio.rwlock);
 	return p;
 fail:
 	p = NULL;
@@ -391,7 +391,7 @@ mmio_unregister (void *handle)
 	struct mmio_handle *p;
 
 	p = handle;
-	//if (rw_spinlock_trylock_ex (&current->vcpu0->mmio.rwlock)) {
+	// if (rw_spinlock_trylock_ex (&current->vcpu0->mmio.rwlock)) {
 	//	p->unregistered = true;
 	//	current->vcpu0->mmio.unregister_flag = true;
 	//	return;
@@ -399,7 +399,7 @@ mmio_unregister (void *handle)
 	LIST1_DEL (current->vcpu0->mmio.handle, p);
 	scan (p->gphys, p->len, del, p);
 	free (p);
-	//rw_spinlock_unlock_ex (&current->vcpu0->mmio.rwlock);
+	// rw_spinlock_unlock_ex (&current->vcpu0->mmio.rwlock);
 }
 
 // void

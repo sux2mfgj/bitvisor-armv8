@@ -27,8 +27,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CORE_VMMERR_H
-#define _CORE_VMMERR_H
+#ifndef __CORE_VMMERR_H
+#define __CORE_VMMERR_H
 
 enum vmmerr {
 	VMMERR_SUCCESS = 0,

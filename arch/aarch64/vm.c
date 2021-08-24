@@ -15,18 +15,6 @@
 
 extern u8 head[], end[];
 
-void
-vm_mapmem (u64 physaddr, uint len, int flags)
-{
-	not_yet_implemented ();
-}
-
-void
-vm_unmapmem (u64 ptr, uint len)
-{
-	not_yet_implemented ();
-}
-
 static u64 *
 page_walk (u64 *root_pt, int level, u64 phys)
 {
@@ -48,7 +36,7 @@ page_walk (u64 *root_pt, int level, u64 phys)
 
 		if (!*tt_entry & PTE_PRESENT) {
 			u64 *tmp_tt, tmp_tt_phys;
-			alloc_page ((void **)&tmp_tt, &tmp_tt_phys);
+			alloc_pages ((void **)&tmp_tt, &tmp_tt_phys, 2);
 			*tt_entry = tmp_tt_phys | PTE_PRESENT;
 		}
 
@@ -58,43 +46,80 @@ page_walk (u64 *root_pt, int level, u64 phys)
 	return tt_entry;
 }
 
-static void
-aarch64_map_guest_1gpage (u64 *root_pt, u64 gphys)
+static void *
+aarch64_map_1gpage (u64 *root_pt, u64 gphys, u32 flags)
 {
 	ASSERT (!(gphys & PAGESIZE1G_MASK));
 	u64 *tt_entry = page_walk (root_pt, 1, gphys);
 	if (!tt_entry)
 		panic ("failed page walking");
 
+	// TODO use the flags
 	*tt_entry = gphys | PTE_BLOCK | PTE_MRA_DEVICE_nGnRnE | LOW_ATTR_AF |
 		    PTE_PRESENT | MM_MEM_ATTR | MM_STAGE2_SH |
 		    MM_STAGE2_S2AP_RW;
+	return (void *)gphys;
 }
 
-static void
-aarch64_map_guest_2mpage (u64 *root_pt, u64 gphys)
+static void *
+aarch64_map_2mpage (u64 *root_pt, u64 gphys, u32 flags)
 {
 	ASSERT (!(gphys & PAGESIZE2M_MASK));
 	u64 *tt_entry = page_walk (root_pt, 2, gphys);
 	if (!tt_entry)
 		panic ("failed page walking");
 
+	// TODO use the flags
 	*tt_entry = gphys | PTE_BLOCK | PTE_MRA_DEVICE_nGnRnE | LOW_ATTR_AF |
 		    PTE_PRESENT | MM_MEM_ATTR | MM_STAGE2_SH |
 		    MM_STAGE2_S2AP_RW;
+	return (void *)gphys;
 }
 
-static void
-aarch64_map_guest_page (u64 *root_pt, u64 gphys)
+static void *
+aarch64_map_page (u64 *root_pt, u64 gphys, u32 flags)
 {
 	ASSERT (!(gphys & PAGESIZE_MASK));
 	u64 *tt_entry = page_walk (root_pt, 3, gphys);
 	if (!tt_entry)
 		panic ("failed page walking");
 
+	// TODO use the flags
 	*tt_entry = gphys | PTE_PAGE | PTE_MRA_DEVICE_nGnRnE | LOW_ATTR_AF |
 		    PTE_PRESENT | MM_MEM_ATTR | MM_STAGE2_SH |
 		    MM_STAGE2_S2AP_RW;
+
+	return (void *)gphys;
+}
+
+void *
+vm_mapmem (u64 physaddr, uint len, u32 flags)
+{
+	// TODO consider to use `at` instruction.
+	u64 *root_tt = (u64 *)read_ttbr0_el2 ();
+	void *virt;
+
+	switch (len) {
+	case PAGESIZE:
+		virt = aarch64_map_page (root_tt, physaddr, flags);
+		break;
+	case PAGESIZE2M:
+		virt = aarch64_map_2mpage (root_tt, physaddr, flags);
+		break;
+	case PAGESIZE1G:
+		virt = aarch64_map_1gpage (root_tt, physaddr, flags);
+		break;
+	default:
+		panic ("%s: unsupported length (0x%x)", __func__, len);
+	}
+
+	return virt;
+}
+
+void
+vm_unmapmem (void *ptr, uint len)
+{
+	not_yet_implemented ();
 }
 
 /*
@@ -110,20 +135,20 @@ aarch64_guest_tfault_handler (u64 gphys)
 	/*
 	 * Try to access to mmio range first, because, the page fault for
 	 * straight page map occures only once for each region, but mmio for
-	 * devices occurs multiple time.
+	 * devices occurs multiple times.
 	 */
 	// TODO
-	// if (mmio_access_page(gphys, true))
-	//    goto done;
+	if (mmio_access_page (gphys, true))
+		goto done;
 
 	if (!mmio_range (gphys & ~PAGESIZE1G_MASK, PAGESIZE1G))
-		aarch64_map_guest_1gpage (ctx->vttbr_el2, gphys);
+		aarch64_map_1gpage (ctx->vttbr_el2, gphys, 0);
 	else if (!mmio_range (gphys & ~PAGESIZE2M_MASK, PAGESIZE2M))
-		aarch64_map_guest_2mpage (ctx->vttbr_el2, gphys);
+		aarch64_map_2mpage (ctx->vttbr_el2, gphys, 0);
 	else
-		aarch64_map_guest_page (ctx->vttbr_el2, gphys);
+		aarch64_map_page (ctx->vttbr_el2, gphys, 0);
 
-	// done:
+done:;
 	// TODO mmio unlock
 }
 
