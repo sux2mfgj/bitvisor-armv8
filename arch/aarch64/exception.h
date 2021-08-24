@@ -1,6 +1,15 @@
 #ifndef _EXCEPTION_H_
 #define _EXCEPTION_H_
 
+#define ESR_EL2_ISS_OFFSET 0
+#define ESR_EL2_ISS_MASK (0x00ffffff)
+#define ESR_EL2_EL_OFFSET 25
+#define ESR_EL2_EL_MASK (0b1)
+#define ESR_EL2_EC_OFFSET 26
+#define ESR_EL2_EC_MASK 0b111111
+#define ESR_EL2_ISS2_OFFSET 32
+#define ESR_EL2_ISS2_MASK 0b11111
+
 enum esr_exception_class {
 	EC_UNKNOWN_REASON = 0b000000,
 	EC_TRAPPED_WF = 0b000001,

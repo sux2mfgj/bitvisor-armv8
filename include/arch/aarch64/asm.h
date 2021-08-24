@@ -66,6 +66,7 @@ DEF_SYS_REG_READ (spsel)
 DEF_SYS_REG_WRITE (spsel)
 DEF_SYS_REG_READ (far_el2)
 DEF_SYS_REG_READ (par_el1)
+DEF_SYS_REG_READ (elr_el2);
 
 #define daif_clear(value) asm volatile("msr daifclr, %0" ::"I"(value));
 #define daif_set(value) asm volatile("msr daifset, %0" ::"I"(value))
